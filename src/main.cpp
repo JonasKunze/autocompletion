@@ -7,14 +7,20 @@
 //============================================================================
 
 #include <iostream>
+#include <string>
 
 #include "Node.h"
 
 using namespace std;
 
+struct test {
+	char chars[];
+	char chars2[];
+};
+
 int main() {
-	char chars[] = { 'a', 'b' };
-	PackedNode<sizeof(chars), 2, 3> n(chars, false, 1, 2);
-	cout << sizeof(n) << endl;
+	char chars[] = { 'a' };
+	PackedNode *n = createNode(sizeof(chars), chars, false, 1024, 1024);
+	cout << n->getFirstChildOffset() << endl;
 	return 0;
 }
