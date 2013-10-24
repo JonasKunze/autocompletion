@@ -27,18 +27,34 @@ public:
 	std::vector<PackedNode*> findLocus(const std::string term,
 			bool& return_foundTerm);
 	SimpleSuggestions* getSuggestions(const std::string prefix, const int k);
+	char* mem;
 private:
-	static const long initialMemSize = 1 << 20;
+	static const long initialMemSize = 80; //1 << 20;
 
 	/*
 	 * The main memory used to store the trie
 	 * TODO: Use a memory mapped file instead
 	 */
-	char* mem;
+
 	long memSize;
 
 	u_int64_t firstNodePointer;
-	u_int64_t lastNodePointer;
+	u_int64_t firstFreeMemPointer;
+
+	/**
+	 * Shifts all Nodes right of node to the right by width bytes and updates the
+	 * firstChildOffset of all left siblings
+	 *
+	 * @return A pointer to the first free byte (with width following free bytes)
+	 */
+	u_int64_t makeRoomBehindNode(PackedNode* node, PackedNode* parent,
+			const uint width);
+
+	PackedNode* findLeftSibling(const u_int32_t deltaScore, PackedNode* parent);
+
+	u_int64_t getPositionInMem(const PackedNode* node) {
+		return ((long) node) - ((long) mem);
+	}
 };
 
 #endif /* COMPLETIONTRIE_H_ */

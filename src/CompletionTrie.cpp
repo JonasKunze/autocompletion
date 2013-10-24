@@ -7,8 +7,13 @@
 
 #include "CompletionTrie.h"
 
-//#include <stdlib.h>
+#include <sys/types.h>
+#include <cstring>
 #include <iostream>
+#include <memory>
+#include <new>
+#include <string>
+#include <vector>
 
 #include "PackedNode.h"
 
@@ -16,41 +21,12 @@ static u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF };
 CompletionTrie::CompletionTrie() :
 		mem(new char[initialMemSize]), memSize(initialMemSize), firstNodePointer(
-				0), lastNodePointer(0) {
+				0), firstFreeMemPointer(0) {
 
 }
 
 CompletionTrie::~CompletionTrie() {
 	delete[] mem;
-}
-
-/**
- *
- */
-void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
-	if (firstNodePointer == 0) {
-		firstNodePointer = memSize / 2;
-		lastNodePointer = firstNodePointer;
-
-		PackedNode::createNode(mem, firstNodePointer, term.length(),
-				term.c_str(), true, 1000, 0, false);
-	} else {
-		bool foundCompleteTerm = false;
-		std::vector<PackedNode*> locus = findLocus(term, foundCompleteTerm);
-		PackedNode* closestNode = locus.back();
-
-		std::string completeString = "";
-		for (PackedNode* n : locus) {
-			completeString += std::string(n->getCharacters(),
-					n->charactersSize_);
-		}
-		std::cout << completeString << std::endl;
-
-		if (foundCompleteTerm) {
-			// Term already exists!
-			return;
-		}
-	}
 }
 
 /**
@@ -70,13 +46,13 @@ std::vector<PackedNode*> CompletionTrie::findLocus(const std::string term,
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
 	u_int64_t nodePointer = firstNodePointer;
-	u_int64_t firstNonSiblingPointer = 0;
+	u_int64_t firstNonSiblingPointer = firstFreeMemPointer;
 
 	u_int64_t currentNode;
 	PackedNode* n;
 	do {
-		currentNode = *((u_int64_t*) (mem + nodePointer));
-		n = (PackedNode*) (&currentNode);
+		n = (PackedNode*) (mem + nodePointer);
+		currentNode = *((u_int64_t*) (n));
 
 		/*
 		 * Try if the N characters in the node match the next N characters of the prefix
@@ -87,8 +63,6 @@ std::vector<PackedNode*> CompletionTrie::findLocus(const std::string term,
 		if (nodeFits) {
 			resultLocus.push_back(n);
 			firstNonSiblingPointer = 0;
-			std::cout << std::string(n->getCharacters(), n->charactersSize_)
-					<< " : " << nodeFits << std::endl;
 			charPos += n->charactersSize_;
 
 			/*
@@ -124,4 +98,124 @@ std::vector<PackedNode*> CompletionTrie::findLocus(const std::string term,
 	} while (firstNonSiblingPointer == 0 || nodePointer < firstNonSiblingPointer);
 
 	return resultLocus;
+}
+
+/**
+ *
+ */
+void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
+	if (firstNodePointer == 0) {
+		firstNodePointer = memSize / 2;
+
+		const PackedNode *node = PackedNode::createNode(mem, firstNodePointer,
+				term.length(), term.c_str(), true, 0xFFFFFFFF - score, 0,
+				false);
+
+		firstFreeMemPointer = firstNodePointer + node->getSize();
+	} else {
+		bool foundCompleteTerm = false;
+		std::vector<PackedNode*> locus = findLocus(term, foundCompleteTerm);
+		if (foundCompleteTerm) {
+			// Term already exists!
+			return;
+		}
+
+		PackedNode* parent = locus.back();
+		u_int32_t deltaScore = 0xFFFFFFFF;
+		int completeSuffixLength = 0;
+		for (PackedNode* n : locus) {
+			deltaScore -= n->getDeltaScore();
+			completeSuffixLength += n->charactersSize_;
+		}
+		/*
+		 * TODO: What if score is bigger than the score of the parent?
+		 */
+		deltaScore -= score;
+
+		std::string suffix = term.substr(completeSuffixLength);
+		std::cout << "suffix String: " << suffix << std::endl;
+
+		/*
+		 * Create a new Node on a separate memory to define the length and copy it to mem afterwards
+		 *
+		 * TODO: Calculation of the length of the Node might be faster instead of
+		 * 		creating it on separate memory first
+		 */
+		const PackedNode* newNode = PackedNode::createNode(suffix.length(),
+				suffix.c_str(), true, deltaScore - score, 0);
+
+		const u_int64_t newNodePointer = makeRoomBehindNode(
+				findLeftSibling(deltaScore - score, parent), parent,
+				newNode->getSize());
+
+		memcpy(mem + newNodePointer, newNode, newNode->getSize());
+
+		delete (newNode);
+
+	}
+}
+
+u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
+		PackedNode* parent, const uint width) {
+	/*
+	 * Calculate the additional shift due to increasing the firstChildOffset of the left siblings leading to
+	 * an extension of some of those nodes as the firstChildOffset field has to be increased if all bits are
+	 * already used
+	 */
+	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parent);
+	const u_int64_t firstFreeBytePtr = reinterpret_cast<u_int64_t>(node)
+			+ node->getSize();
+	PackedNode* sibling;
+
+	uint bytesToShiftForFirstChildOffsetExtension = 0;
+	while (siblingPointer < firstFreeBytePtr) {
+		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
+		siblingPointer += sibling->getSize();
+		bytesToShiftForFirstChildOffsetExtension +=
+				sibling->bytesToExtendOnFirstChildOffsetIncrementation(width);
+	}
+
+	memmove(
+			node + node->getSize() + width
+					+ bytesToShiftForFirstChildOffsetExtension,
+			node + node->getSize(),
+			firstFreeMemPointer - getPositionInMem(node) + node->getSize());
+
+	/*
+	 * update firstChildOffset values of all siblings to the left
+	 */
+	siblingPointer = reinterpret_cast<u_int64_t>(parent);
+	while (siblingPointer < reinterpret_cast<u_int64_t>(node)) {
+		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
+		siblingPointer += sibling->getSize();
+		/*
+		 * TODO: to be implemented
+		 */
+	}
+	return firstFreeBytePtr + bytesToShiftForFirstChildOffsetExtension;
+}
+
+/**
+ * Returns the last child of parent with a higher score then defined by the given deltaScore
+ */
+PackedNode* CompletionTrie::findLeftSibling(const u_int32_t deltaScore,
+		PackedNode* parent) {
+	if (parent->firstChildOffsetSize_ == 0) {
+		return parent;
+	}
+
+	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parent)
+			+ parent->getFirstChildOffset();
+
+	const u_int64_t endOfSiblingsPointer = reinterpret_cast<PackedNode*>(mem
+			+ siblingPointer)->getFirstChildOffset();
+
+	while (siblingPointer < endOfSiblingsPointer) {
+
+	}
+
+//	while (siblingPointer < siblingEndPointer) {
+//		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
+//		siblingPointer += sibling->getSize();
+//	}
 }

@@ -19,7 +19,7 @@
  *
  * TODO: This takes about 9µs and could be optimized, but it's not used too often
  */
-unsigned inline char getNumberOfBytesToStore2b(const int i) {
+inline u_int8_t getNumberOfBytesToStore2b(const int i) {
 //	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
 	int msb;
 	asm("bsrl %1,%0" : "=r"(msb) : "r"(i));
@@ -76,7 +76,7 @@ struct PackedNode {
 	/**
 	 * Returns the pointer to the character array
 	 */
-	int getDeltaScore() {
+	u_int32_t getDeltaScore() {
 		/*
 		 * Cast the storage to an array directly behind the characters and use a bitmap to
 		 * only return as many bytes as are used for the delta score
@@ -88,7 +88,7 @@ struct PackedNode {
 	/**
 	 * Returns the pointer to the character array (counted from the first byte of this node)
 	 */
-	int getFirstChildOffset() {
+	u_int32_t getFirstChildOffset() {
 		/*
 		 * Cast the storage to an array at the position behind the delta score and use a bitmap to
 		 * only return as many bytes as are used for the first child offset
@@ -96,6 +96,14 @@ struct PackedNode {
 		return *(reinterpret_cast<int*>(characters_deltaScore_firstChildOffset_
 				+ charactersSize_ + deltaScoreSize_))
 				& ((1 << firstChildOffsetSize_ * 8) - 1);
+	}
+
+	/**
+	 * Returns the number of bytes this node has to be extended if the firstChildOffset would be incremented by the given value
+	 */
+	u_int8_t bytesToExtendOnFirstChildOffsetIncrementation(const uint delta) {
+		return getNumberOfBytesToStore2b(getFirstChildOffset() + delta)
+				- firstChildOffsetSize_;
 	}
 
 	int getSize() const {
@@ -106,10 +114,23 @@ struct PackedNode {
 	/**
 	 * Returns the maximum size a PackedNode could take
 	 */
-	static int getMaxSize() {
+	static u_int32_t getMaxSize() {
 		return sizeof(PackedNode) + 7 + 4 + 3;
 	}
 
+	/**
+	 * Creates a new PackedNode with it's own allocated memory
+	 */
+	static PackedNode* createNode(const char characterSize,
+			const char* characters, const bool isEndOfWord,
+			const int deltaScore, const int firstChildOffset);
+
+	/**
+	 * Creates a new PackedNode inside the given memory
+	 *
+	 * @param floatLeft If true the last byte of the new Node will be memPointer, If false
+	 * this pointer will be the first byte
+	 */
 	static PackedNode* createNode(void* memory,
 			u_int64_t firstBlockedByteInMemoryPointer, const char characterSize,
 			const char* characters, const bool isEndOfWord,

@@ -6,28 +6,26 @@
 // Description : Main method of the autocompletion service
 //============================================================================
 
+//#include <cstring>
 #include <iostream>
+#include <new>
+#include <string>
+#include <vector>
 
 #include "CompletionTrie.h"
-#include "PackedNode.h"
+
+struct PackedNode;
 
 using namespace std;
 
-struct test {
-	char chars[];
-	char chars2[];
-};
-
 int main() {
 	CompletionTrie trie;
+	trie.addTerm("asdf", 1234);
 	trie.addTerm("asdf123", 1234);
-	trie.addTerm("asdf1234", 1234);
 
 	bool return_foundTerm;
-	std::vector<PackedNode*> locus = trie.findLocus("asdf123abc",
-			return_foundTerm);
-	std::cout
-			<< std::string(locus.back()->getCharacters(),
-					locus.back()->charactersSize_) << std::endl;
+	std::vector<PackedNode*> locus = trie.findLocus("asdf", return_foundTerm);
+	PackedNode* closestNode = locus.back();
+
 	return 0;
 }
