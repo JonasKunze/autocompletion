@@ -1,19 +1,14 @@
 /*
- * Node.h
+ * PackedNode.h
  *
  *  Created on: Oct 23, 2013
  *      Author: Jonas Kunze
  */
 
-//#include <string.h>
-#include <cstring>
-//#include <iostream>
-//#include <string>
+#ifndef PACKEDNODE_H_
+#define PACKEDNODE_H_
 
-#ifndef NODE_H_
-#define NODE_H_
-
-#define NUMBER_OF_BYTES_TO_STORE(i) i>>8>0?
+#include <sys/types.h>
 
 /**
  * Returns the number of bytes needed to store the given integer with the following coding:
@@ -21,12 +16,14 @@
  * 1: 1 byte
  * 2: 2 bytes
  * 3: 4 bytes
+ *
+ * TODO: This takes about 9µs and could be optimized, but it's not used too often
  */
 unsigned inline char getNumberOfBytesToStore2b(const int i) {
 //	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
 	int msb;
 	asm("bsrl %1,%0" : "=r"(msb) : "r"(i));
-	return msb > 15 ? 4 : msb / 8 + 1;
+	return msb == 0 ? 0 : msb > 15 ? 4 : msb / 8 + 1;
 }
 
 /**
@@ -58,6 +55,8 @@ struct PackedNode {
 	 */
 	unsigned int firstChildOffsetSize_ :2;
 
+	///////// FIRST BYTE DONE
+
 	/*
 	 * Stores the characters of this node in the trie, the score difference to the parent
 	 * node and the relative pointer to the first child.
@@ -87,7 +86,7 @@ struct PackedNode {
 	}
 
 	/**
-	 * Returns the pointer to the character array
+	 * Returns the pointer to the character array (counted from the first byte of this node)
 	 */
 	int getFirstChildOffset() {
 		/*
@@ -104,33 +103,18 @@ struct PackedNode {
 				+ firstChildOffsetSize_;
 	}
 
+	/**
+	 * Returns the maximum size a PackedNode could take
+	 */
+	static int getMaxSize() {
+		return sizeof(PackedNode) + 7 + 4 + 3;
+	}
+
+	static PackedNode* createNode(void* memory,
+			u_int64_t firstBlockedByteInMemoryPointer, const char characterSize,
+			const char* characters, const bool isEndOfWord,
+			const int deltaScore, const int firstChildOffset, bool floatLeft);
+
 }__attribute__((packed));
 
-static PackedNode* createNode(const char characterSize, const char* characters,
-		const bool isEndOfWord, const int deltaScore,
-		const int firstChildOffset) {
-
-	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
-	const char firstChildOffsetSize = getNumberOfBytesToStore2b(
-			firstChildOffset);
-
-	PackedNode *node = static_cast<PackedNode *>(std::malloc(
-			sizeof(PackedNode) + characterSize + deltaScoreSize
-					+ firstChildOffsetSize));
-
-	node->charactersSize_ = characterSize;
-	node->isEndOfWord_ = isEndOfWord;
-	node->deltaScoreSize_ = deltaScoreSize;
-	node->firstChildOffsetSize_ = firstChildOffsetSize;
-
-	memcpy(node->characters_deltaScore_firstChildOffset_, characters,
-			characterSize);
-	memcpy(node->characters_deltaScore_firstChildOffset_ + characterSize,
-			&deltaScore, deltaScoreSize);
-	memcpy(
-			node->characters_deltaScore_firstChildOffset_ + characterSize
-					+ deltaScoreSize, &firstChildOffset, firstChildOffsetSize);
-	return node;
-}
-
-#endif /* NODE_H_ */
+#endif /* PACKEDNODE_H_ */

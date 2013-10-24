@@ -1,3 +1,5 @@
-src/main.d: ../src/main.cpp ../src/Node.h
+src/main.d: ../src/main.cpp ../src/CompletionTrie.h ../src/PackedNode.h
 
-../src/Node.h:
+../src/CompletionTrie.h:
+
+../src/PackedNode.h:

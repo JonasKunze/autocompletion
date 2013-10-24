@@ -7,9 +7,9 @@
 //============================================================================
 
 #include <iostream>
-#include <string>
 
-#include "Node.h"
+#include "CompletionTrie.h"
+#include "PackedNode.h"
 
 using namespace std;
 
@@ -19,8 +19,15 @@ struct test {
 };
 
 int main() {
-	char chars[] = { 'a' };
-	PackedNode *n = createNode(sizeof(chars), chars, false, 1024, 1024);
-	cout << n->getFirstChildOffset() << endl;
+	CompletionTrie trie;
+	trie.addTerm("asdf123", 1234);
+	trie.addTerm("asdf1234", 1234);
+
+	bool return_foundTerm;
+	std::vector<PackedNode*> locus = trie.findLocus("asdf123abc",
+			return_foundTerm);
+	std::cout
+			<< std::string(locus.back()->getCharacters(),
+					locus.back()->charactersSize_) << std::endl;
 	return 0;
 }
