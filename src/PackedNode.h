@@ -23,7 +23,7 @@ inline u_int8_t getNumberOfBytesToStore2b(const int i) {
 //	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
 	int msb;
 	asm("bsrl %1,%0" : "=r"(msb) : "r"(i));
-	return msb == 0 ? 0 : msb > 15 ? 4 : msb / 8 + 1;
+	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
 }
 
 /**
@@ -126,6 +126,11 @@ struct PackedNode {
 			const int deltaScore, const int firstChildOffset);
 
 	/**
+	 * Creates a new root Node at the beginning of the given memory
+	 */
+	static PackedNode* createRootNode(void* memory);
+
+	/**
 	 * Creates a new PackedNode inside the given memory
 	 *
 	 * @param floatLeft If true the last byte of the new Node will be memPointer, If false
@@ -134,7 +139,7 @@ struct PackedNode {
 	static PackedNode* createNode(void* memory,
 			u_int64_t firstBlockedByteInMemoryPointer, const char characterSize,
 			const char* characters, const bool isEndOfWord,
-			const int deltaScore, const int firstChildOffset, bool floatLeft);
+			const int deltaScore, const int firstChildOffset);
 
 }__attribute__((packed));
 

@@ -19,13 +19,17 @@ struct PackedNode;
 using namespace std;
 
 int main() {
+	bool return_foundTerm;
 	CompletionTrie trie;
 	trie.addTerm("asdf", 1234);
 	trie.addTerm("asdf123", 1234);
 
-	bool return_foundTerm;
-	std::vector<PackedNode*> locus = trie.findLocus("asdf", return_foundTerm);
-	PackedNode* closestNode = locus.back();
+	trie.print();
+
+	std::cout << trie.findLocus("asdf123", return_foundTerm).size() << " : ";
+	std::cout << return_foundTerm << std::endl;
+
+
 
 	return 0;
 }

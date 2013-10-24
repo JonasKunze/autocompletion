@@ -10,8 +10,6 @@
 #include <sys/types.h>
 #include <cstring>
 #include <iostream>
-#include <memory>
-#include <new>
 #include <string>
 #include <vector>
 
@@ -20,9 +18,8 @@
 static u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF };
 CompletionTrie::CompletionTrie() :
-		mem(new char[initialMemSize]), memSize(initialMemSize), firstNodePointer(
-				0), firstFreeMemPointer(0) {
-
+		root(NULL), mem(new char[initialMemSize]), memSize(initialMemSize), firstFreeMemPointer(
+				reinterpret_cast<u_int64_t>(mem)) {
 }
 
 CompletionTrie::~CompletionTrie() {
@@ -38,20 +35,20 @@ CompletionTrie::~CompletionTrie() {
  *
  * @return The Node in the trie defining the maximum largest substring of term or the whole term
  */
-std::vector<PackedNode*> CompletionTrie::findLocus(const std::string term,
+std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 		bool& return_foundTerm) {
-	std::vector<PackedNode*> resultLocus;
+	std::deque<PackedNode*> resultLocus;
 
 	return_foundTerm = false;
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
-	u_int64_t nodePointer = firstNodePointer;
+	u_int64_t nodePointer = reinterpret_cast<u_int64_t>(mem);
 	u_int64_t firstNonSiblingPointer = firstFreeMemPointer;
 
 	u_int64_t currentNode;
 	PackedNode* n;
 	do {
-		n = (PackedNode*) (mem + nodePointer);
+		n = (PackedNode*) nodePointer;
 		currentNode = *((u_int64_t*) (n));
 
 		/*
@@ -104,23 +101,24 @@ std::vector<PackedNode*> CompletionTrie::findLocus(const std::string term,
  *
  */
 void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
-	if (firstNodePointer == 0) {
-		firstNodePointer = memSize / 2;
+	if (root == NULL) {
+		root = PackedNode::createRootNode(mem);
+		numberOfChildren[""]++;
 
-		const PackedNode *node = PackedNode::createNode(mem, firstNodePointer,
-				term.length(), term.c_str(), true, 0xFFFFFFFF - score, 0,
-				false);
+		const PackedNode* node = PackedNode::createNode(mem,
+				root->getFirstChildOffset(), term.length(), term.c_str(), true,
+				0xFFFFFFFF - score, 0);
 
-		firstFreeMemPointer = firstNodePointer + node->getSize();
+		firstFreeMemPointer = reinterpret_cast<u_int64_t>(node)
+				+ node->getSize();
 	} else {
 		bool foundCompleteTerm = false;
-		std::vector<PackedNode*> locus = findLocus(term, foundCompleteTerm);
+		std::deque<PackedNode*> locus = findLocus(term, foundCompleteTerm);
 		if (foundCompleteTerm) {
 			// Term already exists!
 			return;
 		}
 
-		PackedNode* parent = locus.back();
 		u_int32_t deltaScore = 0xFFFFFFFF;
 		int completeSuffixLength = 0;
 		for (PackedNode* n : locus) {
@@ -133,7 +131,6 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		deltaScore -= score;
 
 		std::string suffix = term.substr(completeSuffixLength);
-		std::cout << "suffix String: " << suffix << std::endl;
 
 		/*
 		 * Create a new Node on a separate memory to define the length and copy it to mem afterwards
@@ -144,32 +141,46 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		const PackedNode* newNode = PackedNode::createNode(suffix.length(),
 				suffix.c_str(), true, deltaScore - score, 0);
 
-		const u_int64_t newNodePointer = makeRoomBehindNode(
-				findLeftSibling(deltaScore - score, parent), parent,
+		PackedNode* parent = locus.back();
+		numberOfChildren[generateStringFromLocus(locus)]++;
+
+		u_int64_t newNodePointer;
+		if (parent->getFirstChildOffset() == 0) {
+			PackedNode* lastParentsSibling = getFirstChild(
+					locus[locus.size() - 2]);
+
+			newNodePointer = makeRoomBehindNode(parent, locus,
+					newNode->getSize());
+
+		} else {
+			newNodePointer = makeRoomBehindNode(
+					findLeftSibling(deltaScore - score, parent), locus,
+					newNode->getSize());
+
+		}
+
+		memcpy(reinterpret_cast<char*>(newNodePointer), newNode,
 				newNode->getSize());
 
-		memcpy(mem + newNodePointer, newNode, newNode->getSize());
-
 		delete (newNode);
-
 	}
 }
 
 u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
-		PackedNode* parent, const uint width) {
+		std::deque<PackedNode*> parentLocus, const uint width) {
 	/*
 	 * Calculate the additional shift due to increasing the firstChildOffset of the left siblings leading to
 	 * an extension of some of those nodes as the firstChildOffset field has to be increased if all bits are
 	 * already used
 	 */
-	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parent);
+	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parentLocus.back());
 	const u_int64_t firstFreeBytePtr = reinterpret_cast<u_int64_t>(node)
 			+ node->getSize();
 	PackedNode* sibling;
 
 	uint bytesToShiftForFirstChildOffsetExtension = 0;
 	while (siblingPointer < firstFreeBytePtr) {
-		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
+		sibling = reinterpret_cast<PackedNode*>(siblingPointer);
 		siblingPointer += sibling->getSize();
 		bytesToShiftForFirstChildOffsetExtension +=
 				sibling->bytesToExtendOnFirstChildOffsetIncrementation(width);
@@ -179,14 +190,15 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 			node + node->getSize() + width
 					+ bytesToShiftForFirstChildOffsetExtension,
 			node + node->getSize(),
-			firstFreeMemPointer - getPositionInMem(node) + node->getSize());
+			firstFreeMemPointer - reinterpret_cast<u_int64_t>(node)
+					+ node->getSize());
 
 	/*
 	 * update firstChildOffset values of all siblings to the left
 	 */
-	siblingPointer = reinterpret_cast<u_int64_t>(parent);
+	siblingPointer = reinterpret_cast<u_int64_t>(parentLocus.back());
 	while (siblingPointer < reinterpret_cast<u_int64_t>(node)) {
-		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
+		sibling = reinterpret_cast<PackedNode*>(siblingPointer);
 		siblingPointer += sibling->getSize();
 		/*
 		 * TODO: to be implemented
@@ -197,13 +209,10 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 
 /**
  * Returns the last child of parent with a higher score then defined by the given deltaScore
+ * parent->firstChildOffsetSize_ may not be 0!
  */
 PackedNode* CompletionTrie::findLeftSibling(const u_int32_t deltaScore,
 		PackedNode* parent) {
-	if (parent->firstChildOffsetSize_ == 0) {
-		return parent;
-	}
-
 	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parent)
 			+ parent->getFirstChildOffset();
 
@@ -218,4 +227,48 @@ PackedNode* CompletionTrie::findLeftSibling(const u_int32_t deltaScore,
 //		sibling = reinterpret_cast<PackedNode*>(mem + siblingPointer);
 //		siblingPointer += sibling->getSize();
 //	}
+	return NULL;
+}
+
+void CompletionTrie::print() {
+	std::deque<PackedNode*> locus;
+	std::cout << "graph completionTrie {" << std::endl;
+
+	locus.push_back(root);
+	printNode(root, locus);
+
+	std::cout << "}" << std::endl;
+}
+
+/**
+ * Recursively prints a node and all its children in the dot format "parent -- child"
+ */
+void CompletionTrie::printNode(PackedNode* parent,
+		std::deque<PackedNode*> locus) {
+	u_int32_t childrenNum = numberOfChildren[generateStringFromLocus(locus)];
+
+	PackedNode* child = getFirstChild(parent);
+	while (childrenNum-- != 0) {
+		locus.push_back(child);
+		printNode(child, locus);
+		locus.pop_back();
+
+		if (parent->charactersSize_ == 0) {
+			/*
+			 * the root element
+			 */
+			std::cout << "ROOT";
+		} else {
+			std::cout
+					<< std::string(parent->getCharacters(),
+							parent->charactersSize_);
+		}
+		std::cout << " -- "
+				<< std::string(child->getCharacters(), child->charactersSize_)
+				<< std::endl;
+		if (childrenNum != 0) {
+			child = reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(child)
+					+ child->getSize());
+		}
+	}
 }

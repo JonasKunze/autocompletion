@@ -15,26 +15,25 @@ PackedNode* PackedNode::createNode(const char characterSize,
 
 	char* memory = new char[getMaxSize()];
 	return createNode(memory, 0, characterSize, characters, isEndOfWord,
-			deltaScore, firstChildOffset, false);
+			deltaScore, firstChildOffset);
+}
+
+PackedNode* PackedNode::createRootNode(void* memory) {
+	return createNode(memory, 0, 0, 0, false, 0xFFFFFFFF,
+			sizeof(PackedNode) + 4 + 1);
 }
 
 PackedNode* PackedNode::createNode(void* memory, u_int64_t memPointer,
 		const char characterSize, const char* characters,
 		const bool isEndOfWord, const int deltaScore,
-		const int firstChildOffset, bool floatLeft) {
+		const int firstChildOffset) {
 
 	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
 	const char firstChildOffsetSize = getNumberOfBytesToStore2b(
 			firstChildOffset);
 
 	PackedNode *node;
-	if (floatLeft) {
-		node = static_cast<PackedNode *>(memory + memPointer
-				- (sizeof(PackedNode) + characterSize + deltaScoreSize
-						+ firstChildOffsetSize) + 1);
-	} else {
-		node = static_cast<PackedNode *>(memory + memPointer);
-	}
+	node = static_cast<PackedNode *>(memory + memPointer);
 
 	node->charactersSize_ = characterSize;
 	node->isEndOfWord_ = isEndOfWord;
