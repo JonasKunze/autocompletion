@@ -9,6 +9,7 @@
 #define PACKEDNODE_H_
 
 #include <sys/types.h>
+#include <cstring>
 
 /**
  * Returns the number of bytes needed to store the given integer with the following coding:
@@ -38,7 +39,7 @@ struct PackedNode {
 	/*
 	 * Is this Node the last sibling?
 	 */
-	unsigned int isEndOfWord_ :1;
+	unsigned int isLastSibling :1;
 
 	/*
 	 * Number of bytes used for the delta score value:
@@ -99,10 +100,21 @@ struct PackedNode {
 	}
 
 	/**
-	 * Returns the number of bytes this node has to be extended if the firstChildOffset would be incremented by the given value
+	 * Returns the pointer to the character array (counted from the first byte of this node)
 	 */
-	u_int8_t bytesToExtendOnFirstChildOffsetIncrementation(const uint delta) {
-		return getNumberOfBytesToStore2b(getFirstChildOffset() + delta)
+	u_int32_t setFirstChildOffset(const u_int32_t offset) {
+		firstChildOffsetSize_ = getNumberOfBytesToStore2b(offset);
+		memcpy(
+				characters_deltaScore_firstChildOffset_ + charactersSize_
+						+ deltaScoreSize_, &offset, firstChildOffsetSize_);
+	}
+
+	/**
+	 * Returns the number of bytes this node has to be extended if the firstChildOffset would be
+	 * changed to the given value
+	 */
+	u_int8_t bytesToExtendOnFirstChildOffsetChange(const uint offset) {
+		return getNumberOfBytesToStore2b(getFirstChildOffset() + offset)
 				- firstChildOffsetSize_;
 	}
 
@@ -128,7 +140,7 @@ struct PackedNode {
 	/**
 	 * Creates a new root Node at the beginning of the given memory
 	 */
-	static PackedNode* createRootNode(void* memory);
+	static PackedNode* createRootNode(char* memory);
 
 	/**
 	 * Creates a new PackedNode inside the given memory
@@ -136,7 +148,7 @@ struct PackedNode {
 	 * @param floatLeft If true the last byte of the new Node will be memPointer, If false
 	 * this pointer will be the first byte
 	 */
-	static PackedNode* createNode(void* memory,
+	static PackedNode* createNode(char* memory,
 			u_int64_t firstBlockedByteInMemoryPointer, const char characterSize,
 			const char* characters, const bool isEndOfWord,
 			const int deltaScore, const int firstChildOffset);

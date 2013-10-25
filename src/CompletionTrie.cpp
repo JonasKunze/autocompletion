@@ -42,7 +42,7 @@ std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 	return_foundTerm = false;
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
-	u_int64_t nodePointer = reinterpret_cast<u_int64_t>(mem);
+	u_int64_t nodePointer = reinterpret_cast<u_int64_t>(root);
 	u_int64_t firstNonSiblingPointer = firstFreeMemPointer;
 
 	u_int64_t currentNode;
@@ -67,7 +67,7 @@ std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 			 */
 			if (n->firstChildOffsetSize_ == 0) {
 				// No more children
-				if (charPos == term.size() && n->isEndOfWord_) {
+				if (charPos == term.size() && n->firstChildOffsetSize_ == 0) {
 					// we've reached the end of the term
 					return_foundTerm = true;
 					return resultLocus;
@@ -103,7 +103,6 @@ std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 	if (root == NULL) {
 		root = PackedNode::createRootNode(mem);
-		numberOfChildren[""]++;
 
 		const PackedNode* node = PackedNode::createNode(mem,
 				root->getFirstChildOffset(), term.length(), term.c_str(), true,
@@ -142,16 +141,18 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 				suffix.c_str(), true, deltaScore - score, 0);
 
 		PackedNode* parent = locus.back();
-		numberOfChildren[generateStringFromLocus(locus)]++;
 
 		u_int64_t newNodePointer;
 		if (parent->getFirstChildOffset() == 0) {
-			PackedNode* lastParentsSibling = getFirstChild(
-					locus[locus.size() - 2]);
+//			PackedNode* lastParentsSibling = getFirstChild(
+//					locus[locus.size() - 2]);
+//
+//			newNodePointer = makeRoomBehindNode(parent, locus,
+//					newNode->getSize());
 
 			newNodePointer = makeRoomBehindNode(parent, locus,
-					newNode->getSize());
-
+					newNode->getSize() + 1);
+			parent->setFirstChildOffset(parent->getSize() + 1);
 		} else {
 			newNodePointer = makeRoomBehindNode(
 					findLeftSibling(deltaScore - score, parent), locus,
@@ -173,7 +174,8 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 	 * an extension of some of those nodes as the firstChildOffset field has to be increased if all bits are
 	 * already used
 	 */
-	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parentLocus.back());
+	PackedNode* parent = parentLocus.back();
+	u_int64_t siblingPointer = reinterpret_cast<u_int64_t>(parent);
 	const u_int64_t firstFreeBytePtr = reinterpret_cast<u_int64_t>(node)
 			+ node->getSize();
 	PackedNode* sibling;
@@ -183,7 +185,8 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 		sibling = reinterpret_cast<PackedNode*>(siblingPointer);
 		siblingPointer += sibling->getSize();
 		bytesToShiftForFirstChildOffsetExtension +=
-				sibling->bytesToExtendOnFirstChildOffsetIncrementation(width);
+				sibling->bytesToExtendOnFirstChildOffsetChange(
+						sibling->getFirstChildOffset() + width);
 	}
 
 	memmove(
@@ -204,6 +207,7 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 		 * TODO: to be implemented
 		 */
 	}
+	firstFreeMemPointer += bytesToShiftForFirstChildOffsetExtension;
 	return firstFreeBytePtr + bytesToShiftForFirstChildOffsetExtension;
 }
 
@@ -245,12 +249,15 @@ void CompletionTrie::print() {
  */
 void CompletionTrie::printNode(PackedNode* parent,
 		std::deque<PackedNode*> locus) {
-	u_int32_t childrenNum = numberOfChildren[generateStringFromLocus(locus)];
-
 	PackedNode* child = getFirstChild(parent);
-	while (childrenNum-- != 0) {
+	if (child == parent) {
+		return;
+	}
+	while (true) {
 		locus.push_back(child);
-		printNode(child, locus);
+		if (child->firstChildOffsetSize_ != 0) {
+			printNode(child, locus);
+		}
 		locus.pop_back();
 
 		if (parent->charactersSize_ == 0) {
@@ -266,7 +273,10 @@ void CompletionTrie::printNode(PackedNode* parent,
 		std::cout << " -- "
 				<< std::string(child->getCharacters(), child->charactersSize_)
 				<< std::endl;
-		if (childrenNum != 0) {
+
+		if (child->isLastSibling) {
+			break;
+		} else {
 			child = reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(child)
 					+ child->getSize());
 		}

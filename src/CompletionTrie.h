@@ -12,9 +12,7 @@
 #include <deque>
 #include <map>
 #include <iostream>
-//#include <queue>
 #include <string>
-//#include <vector>
 
 #include "PackedNode.h"
 
@@ -48,12 +46,6 @@ private:
 
 	u_int64_t firstFreeMemPointer;
 
-	/*
-	 * Stores the number of children of all nodes. This is used while putting new
-	 * terms to find the first place behind the children list
-	 */
-	std::map<std::string, u_int32_t> numberOfChildren;
-
 	/**
 	 * Shifts all Nodes right of node to the right by width bytes and updates the
 	 * firstChildOffset of all left siblings
@@ -80,19 +72,19 @@ private:
 	 */
 	u_int64_t getFirstByteBehindChildren(PackedNode* parent,
 			std::string nodeTerm) {
-		u_int32_t childNum = numberOfChildren[nodeTerm];
-
-		if (childNum == 0) {
+		if (parent->firstChildOffsetSize_ == 0) {
 			return 0;
 		}
 
 		PackedNode* child = getFirstChild(parent);
-		while (childNum-- != 0) {
+		while (true) {
 			if (child->firstChildOffsetSize_ != 0) {
 				return reinterpret_cast<u_int64_t>(reinterpret_cast<char*>(child)
 						+ child->getFirstChildOffset());
 			}
-			if (childNum != 0) {
+			if (child->isLastSibling) {
+				break;
+			} else {
 				child =
 						reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(child)
 								+ child->getSize());

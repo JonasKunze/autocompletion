@@ -10,42 +10,38 @@
 #include <cstring>
 
 PackedNode* PackedNode::createNode(const char characterSize,
-		const char* characters, const bool isEndOfWord, const int deltaScore,
+		const char* characters, const bool isLastSibling, const int deltaScore,
 		const int firstChildOffset) {
 
 	char* memory = new char[getMaxSize()];
-	return createNode(memory, 0, characterSize, characters, isEndOfWord,
+	return createNode(memory, 0, characterSize, characters, isLastSibling,
 			deltaScore, firstChildOffset);
 }
 
-PackedNode* PackedNode::createRootNode(void* memory) {
-	return createNode(memory, 0, 0, 0, false, 0xFFFFFFFF,
-			sizeof(PackedNode) + 4 + 1);
+PackedNode* PackedNode::createRootNode(char* memory) {
+	return createNode(memory, 0, 0, 0, false, 0,
+			sizeof(PackedNode) + 1 /*1 byte to store child offset*/);
 }
 
-PackedNode* PackedNode::createNode(void* memory, u_int64_t memPointer,
+PackedNode* PackedNode::createNode(char* memory, u_int64_t memPointer,
 		const char characterSize, const char* characters,
-		const bool isEndOfWord, const int deltaScore,
+		const bool isLastSibling, const int deltaScore,
 		const int firstChildOffset) {
 
 	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
-	const char firstChildOffsetSize = getNumberOfBytesToStore2b(
-			firstChildOffset);
 
 	PackedNode *node;
-	node = static_cast<PackedNode *>(memory + memPointer);
+	node = reinterpret_cast<PackedNode *>(memory + memPointer);
 
 	node->charactersSize_ = characterSize;
-	node->isEndOfWord_ = isEndOfWord;
+	node->isLastSibling = isLastSibling;
 	node->deltaScoreSize_ = deltaScoreSize;
-	node->firstChildOffsetSize_ = firstChildOffsetSize;
 
 	memcpy(node->characters_deltaScore_firstChildOffset_, characters,
 			characterSize);
 	memcpy(node->characters_deltaScore_firstChildOffset_ + characterSize,
 			&deltaScore, deltaScoreSize);
-	memcpy(
-			node->characters_deltaScore_firstChildOffset_ + characterSize
-					+ deltaScoreSize, &firstChildOffset, firstChildOffsetSize);
+
+	node->setFirstChildOffset(firstChildOffset);
 	return node;
 }

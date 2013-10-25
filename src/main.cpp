@@ -23,13 +23,12 @@ int main() {
 	CompletionTrie trie;
 	trie.addTerm("asdf", 1234);
 	trie.addTerm("asdf123", 1234);
+	trie.addTerm("asdf1235", 1234);
 
 	trie.print();
 
 	std::cout << trie.findLocus("asdf123", return_foundTerm).size() << " : ";
 	std::cout << return_foundTerm << std::endl;
-
-
 
 	return 0;
 }
