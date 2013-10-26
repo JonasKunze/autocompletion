@@ -21,9 +21,10 @@ using namespace std;
 int main() {
 	bool return_foundTerm;
 	CompletionTrie trie;
-	trie.addTerm("asdf", 1234);
-	trie.addTerm("asdf123", 1234);
-	trie.addTerm("asdf1235", 1234);
+	trie.addTerm("12345", 1234);
+	trie.addTerm("123456", 1234);
+	trie.addTerm("abcd", 1234);
+	trie.addTerm("abcd1", 1234);
 
 	trie.print();
 

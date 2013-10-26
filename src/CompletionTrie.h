@@ -29,7 +29,6 @@ public:
 	std::deque<PackedNode*> findLocus(const std::string term,
 			bool& return_foundTerm);
 	SimpleSuggestions* getSuggestions(const std::string prefix, const int k);
-	char* mem;
 
 	void print();
 private:
@@ -37,14 +36,15 @@ private:
 
 	PackedNode* root;
 
+	char* mem;
+
 	/*
 	 * The main memory used to store the trie
-	 * TODO: Use a memory mapped file instead
+	 * TODO: Use a memory mapped file for persistency
 	 */
-
 	long memSize;
 
-	u_int64_t firstFreeMemPointer;
+	u_int64_t firstFreeMem_ptr;
 
 	/**
 	 * Shifts all Nodes right of node to the right by width bytes and updates the
@@ -53,7 +53,15 @@ private:
 	 * @return A pointer to the first free byte (with width following free bytes)
 	 */
 	u_int64_t makeRoomBehindNode(PackedNode* node,
-			std::deque<PackedNode*> parentLocus, const uint width);
+			std::deque<PackedNode*> parentLocus, const uint width,
+			bool& nodeIsLastSibling);
+
+	/**
+	 * Shifts all siblings right of node to the right by width bytes WITHOUT
+	 * updating any child offset
+	 *
+	 */
+	void moveRightSiblings(PackedNode* leftSibling, const uint width);
 
 	PackedNode* findLeftSibling(const u_int32_t deltaScore, PackedNode* parent);
 

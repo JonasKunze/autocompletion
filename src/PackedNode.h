@@ -100,9 +100,11 @@ struct PackedNode {
 	}
 
 	/**
-	 * Returns the pointer to the character array (counted from the first byte of this node)
+	 * Sets the size and the value of the firstChildOffset
+	 * @return Returns how much the length of the node has been increased (may be negative
+	 * if length has been decreased)
 	 */
-	u_int32_t setFirstChildOffset(const u_int32_t offset) {
+	void setFirstChildOffset(const u_int32_t offset) {
 		firstChildOffsetSize_ = getNumberOfBytesToStore2b(offset);
 		memcpy(
 				characters_deltaScore_firstChildOffset_ + charactersSize_
@@ -110,17 +112,16 @@ struct PackedNode {
 	}
 
 	/**
-	 * Returns the number of bytes this node has to be extended if the firstChildOffset would be
-	 * changed to the given value
+	 * Returns the number of bytes this node's length has to be changed if the firstChildOffset would be
+	 * changed to the given value (may be negative)
 	 */
-	u_int8_t bytesToExtendOnFirstChildOffsetChange(const uint offset) {
-		return getNumberOfBytesToStore2b(getFirstChildOffset() + offset)
-				- firstChildOffsetSize_;
+	int8_t bytesToExtendOnFirstChildOffsetChange(const uint newOffset) {
+		return getNumberOfBytesToStore2b(newOffset) - firstChildOffsetSize_;
 	}
 
 	int getSize() const {
 		return sizeof(PackedNode) + charactersSize_ + deltaScoreSize_
-				+ firstChildOffsetSize_;
+				+ firstChildOffsetSize_ + 4;
 	}
 
 	/**
@@ -148,8 +149,7 @@ struct PackedNode {
 	 * @param floatLeft If true the last byte of the new Node will be memPointer, If false
 	 * this pointer will be the first byte
 	 */
-	static PackedNode* createNode(char* memory,
-			u_int64_t firstBlockedByteInMemoryPointer, const char characterSize,
+	static PackedNode* createNode(char* memory, const char characterSize,
 			const char* characters, const bool isEndOfWord,
 			const int deltaScore, const int firstChildOffset);
 

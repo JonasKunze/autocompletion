@@ -14,24 +14,23 @@ PackedNode* PackedNode::createNode(const char characterSize,
 		const int firstChildOffset) {
 
 	char* memory = new char[getMaxSize()];
-	return createNode(memory, 0, characterSize, characters, isLastSibling,
+	return createNode(memory, characterSize, characters, isLastSibling,
 			deltaScore, firstChildOffset);
 }
 
 PackedNode* PackedNode::createRootNode(char* memory) {
-	return createNode(memory, 0, 0, 0, false, 0,
+	return createNode(memory, 0, 0, false, 0,
 			sizeof(PackedNode) + 1 /*1 byte to store child offset*/);
 }
 
-PackedNode* PackedNode::createNode(char* memory, u_int64_t memPointer,
-		const char characterSize, const char* characters,
+PackedNode* PackedNode::createNode(char* memory, const char characterSize, const char* characters,
 		const bool isLastSibling, const int deltaScore,
 		const int firstChildOffset) {
 
 	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
 
 	PackedNode *node;
-	node = reinterpret_cast<PackedNode *>(memory + memPointer);
+	node = reinterpret_cast<PackedNode *>(memory);
 
 	node->charactersSize_ = characterSize;
 	node->isLastSibling = isLastSibling;
