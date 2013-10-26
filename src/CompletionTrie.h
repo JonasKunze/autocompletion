@@ -61,7 +61,7 @@ private:
 	 * updating any child offset
 	 *
 	 */
-	void moveRightSiblings(PackedNode* leftSibling, const uint width);
+	void moveRightSiblings(PackedNode* leftSibling, const int width);
 
 	PackedNode* findLeftSiblingWithHigherScore(const u_int32_t deltaScore,
 			PackedNode* parent);

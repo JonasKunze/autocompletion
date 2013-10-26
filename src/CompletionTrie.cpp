@@ -98,7 +98,6 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		PackedNode* node = PackedNode::createNode(
 				reinterpret_cast<char*>(root) + root->getFirstChildOffset(),
 				term.length(), term.c_str(), true, 0xFFFFFFFF - score, 0);
-		std::cout << node->getDeltaScore() << std::endl;
 		firstFreeMem_ptr = reinterpret_cast<u_int64_t>(node) + node->getSize();
 	} else {
 		bool foundCompleteTerm = false;
@@ -155,8 +154,23 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 							parentsLeftSiblingWithChild);
 				}
 			}
+
+			/*
+			 * +1 as the parent node will by increased by 1 byte as it now hast to store
+			 * the first child offset
+			 */
 			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
 					newNode->getSize() + 1, nodeIsLastSibling) + 1;
+
+			/*
+			 * Make room for the first child offset byte of parent
+			 */
+			const u_int64_t endOfParent_ptr =
+					reinterpret_cast<u_int64_t>(parent) + parent->getSize();
+			memmove(reinterpret_cast<char*>(endOfParent_ptr + 1),
+					reinterpret_cast<char*>(endOfParent_ptr),
+					newNode_ptr - endOfParent_ptr + parent->getSize());
+
 			parent->setFirstChildOffset(
 					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
 							- reinterpret_cast<u_int64_t>(parent)
@@ -262,7 +276,7 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 }
 
 void CompletionTrie::moveRightSiblings(PackedNode* leftSibling,
-		const uint width) {
+		const int width) {
 	PackedNode* currentSibling = leftSibling;
 
 	while (!currentSibling->isLastSibling) {
@@ -348,14 +362,13 @@ void CompletionTrie::print() {
 		node_ptr += node->getSize();
 	} while (node_ptr < firstFreeMem_ptr);
 
-	//
-//	std::deque<PackedNode*> locus;
-//	std::cout << "graph completionTrie {" << std::endl;
-//
-//	locus.push_back(root);
-//	printNode(root, locus);
-//
-//	std::cout << "}" << std::endl;
+	std::deque<PackedNode*> locus;
+	std::cout << "graph completionTrie {" << std::endl;
+
+	locus.push_back(root);
+	printNode(root, locus);
+
+	std::cout << "}" << std::endl;
 }
 
 /**
