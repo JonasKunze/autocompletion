@@ -27,6 +27,10 @@ inline u_int8_t getNumberOfBytesToStore2b(const int i) {
 	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
 }
 
+const u_int8_t numberOfBytesBy2bValue[] = { 0, 1, 2, 4 };
+
+static u_int32_t bitmaskFor2bValues[] = { 0, 0xFF, 0xFFFF, 0xFFFFFFFF };
+
 /**
  * A compact completion trie node
  */
@@ -51,8 +55,11 @@ struct PackedNode {
 	unsigned int deltaScoreSize_ :2;
 
 	/*
-	 *
 	 * Number of bytes used for the first child pointer
+	 * 0: 0 bytes
+	 * 1: 1 byte
+	 * 2: 2 bytes
+	 * 3: 4 bytes
 	 */
 	unsigned int firstChildOffsetSize_ :2;
 
@@ -82,8 +89,8 @@ struct PackedNode {
 		 * Cast the storage to an array directly behind the characters and use a bitmap to
 		 * only return as many bytes as are used for the delta score
 		 */
-		return *(reinterpret_cast<int*>(characters_deltaScore_firstChildOffset_
-				+ charactersSize_)) & ((1 << deltaScoreSize_ * 8) - 1);
+		return *(reinterpret_cast<u_int32_t*>(characters_deltaScore_firstChildOffset_
+				+ charactersSize_)) & bitmaskFor2bValues[deltaScoreSize_];
 	}
 
 	/**
@@ -95,8 +102,8 @@ struct PackedNode {
 		 * only return as many bytes as are used for the first child offset
 		 */
 		return *(reinterpret_cast<int*>(characters_deltaScore_firstChildOffset_
-				+ charactersSize_ + deltaScoreSize_))
-				& ((1 << firstChildOffsetSize_ * 8) - 1);
+				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_]))
+				& bitmaskFor2bValues[firstChildOffsetSize_];
 	}
 
 	/**
@@ -108,7 +115,8 @@ struct PackedNode {
 		firstChildOffsetSize_ = getNumberOfBytesToStore2b(offset);
 		memcpy(
 				characters_deltaScore_firstChildOffset_ + charactersSize_
-						+ deltaScoreSize_, &offset, firstChildOffsetSize_);
+						+ numberOfBytesBy2bValue[deltaScoreSize_], &offset,
+				numberOfBytesBy2bValue[firstChildOffsetSize_]);
 	}
 
 	/**
@@ -116,12 +124,14 @@ struct PackedNode {
 	 * changed to the given value (may be negative)
 	 */
 	int8_t bytesToExtendOnFirstChildOffsetChange(const uint newOffset) {
-		return getNumberOfBytesToStore2b(newOffset) - firstChildOffsetSize_;
+		return getNumberOfBytesToStore2b(newOffset)
+				- numberOfBytesBy2bValue[firstChildOffsetSize_];
 	}
 
 	int getSize() const {
-		return sizeof(PackedNode) + charactersSize_ + deltaScoreSize_
-				+ firstChildOffsetSize_ + 4;
+		return sizeof(PackedNode) + charactersSize_
+				+ numberOfBytesBy2bValue[deltaScoreSize_]
+				+ numberOfBytesBy2bValue[firstChildOffsetSize_];
 	}
 
 	/**
@@ -135,7 +145,7 @@ struct PackedNode {
 	 * Creates a new PackedNode with it's own allocated memory
 	 */
 	static PackedNode* createNode(const char characterSize,
-			const char* characters, const bool isEndOfWord,
+			const char* characters, const bool isLastSibling,
 			const int deltaScore, const int firstChildOffset);
 
 	/**
@@ -150,8 +160,8 @@ struct PackedNode {
 	 * this pointer will be the first byte
 	 */
 	static PackedNode* createNode(char* memory, const char characterSize,
-			const char* characters, const bool isEndOfWord,
-			const int deltaScore, const int firstChildOffset);
+			const char* characters, const bool isLastSibling,
+			const u_int32_t deltaScore, const int firstChildOffset);
 
 }__attribute__((packed));
 

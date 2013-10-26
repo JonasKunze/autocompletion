@@ -43,56 +43,47 @@ std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root);
-	u_int64_t firstNonSibling_ptr = firstFreeMem_ptr;
 
-	u_int64_t currentNode;
-	PackedNode* n;
+	u_int64_t currentNode_value;
+	PackedNode* currentNode;
+	bool nodeFits;
 	do {
-		n = (PackedNode*) node_ptr;
-		currentNode = *((u_int64_t*) (n));
+		currentNode = reinterpret_cast<PackedNode*>(node_ptr);
+		currentNode_value = *((u_int64_t*) (currentNode));
 
 		/*
 		 * Try if the N characters in the node match the next N characters of the prefix
 		 */
-		bool nodeFits = (currentNode >> 8 & characterMask[n->charactersSize_])
+		nodeFits = (currentNode_value >> 8
+				& characterMask[currentNode->charactersSize_])
 				== (*((u_int64_t*) (prefixChars + charPos))
-						& characterMask[n->charactersSize_]);
+						& characterMask[currentNode->charactersSize_]);
 		if (nodeFits) {
-			resultLocus.push_back(n);
-			firstNonSibling_ptr = 0;
-			charPos += n->charactersSize_;
+			resultLocus.push_back(currentNode);
+			charPos += currentNode->charactersSize_;
 
-			/*
-			 * Is
-			 */
-			if (n->firstChildOffsetSize_ == 0) {
+			if (charPos == term.size()
+					&& currentNode->firstChildOffsetSize_ == 0) {
+				// we've reached the end of the term
+				return_foundTerm = true;
+				return resultLocus;
+			}
+
+			if (currentNode->firstChildOffsetSize_ == 0) {
 				// No more children
-				if (charPos == term.size() && n->firstChildOffsetSize_ == 0) {
-					// we've reached the end of the term
-					return_foundTerm = true;
-					return resultLocus;
-				} else {
-					// this node defines only a part of the term but we've reached the end
-					// It's like searching for "autocompletion" but only "auto" exists
-					return resultLocus;
-				}
+				// this node defines only a part of the term but we've reached the end
+				// It's like searching for "autocompletion" but only "auto" exists
+				return resultLocus;
 			}
-			node_ptr += n->getFirstChildOffset();
+			node_ptr += currentNode->getFirstChildOffset();
 		} else {
-			if (firstNonSibling_ptr == 0) {
-				/*
-				 * nodeFits is false for the first time at the current depth
-				 * Save the _ptr of the first child as iterating through all siblings must be stopped there
-				 */
-				firstNonSibling_ptr = node_ptr + n->getFirstChildOffset();
-			}
 			/*
 			 * Move to the next sibling
 			 */
-			node_ptr += n->getSize();
+			node_ptr += currentNode->getSize();
 		}
 
-	} while (firstNonSibling_ptr == 0 || node_ptr < firstNonSibling_ptr);
+	} while (nodeFits || (!nodeFits && !currentNode->isLastSibling));
 
 	return resultLocus;
 }
@@ -104,10 +95,10 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 	if (root == NULL) {
 		root = PackedNode::createRootNode(mem);
 
-		const PackedNode* node = PackedNode::createNode(
+		PackedNode* node = PackedNode::createNode(
 				reinterpret_cast<char*>(root) + root->getFirstChildOffset(),
 				term.length(), term.c_str(), true, 0xFFFFFFFF - score, 0);
-
+		std::cout << node->getDeltaScore() << std::endl;
 		firstFreeMem_ptr = reinterpret_cast<u_int64_t>(node) + node->getSize();
 	} else {
 		bool foundCompleteTerm = false;
@@ -144,21 +135,41 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		 * TODO: check if suffix.length() > 7
 		 */
 		PackedNode* newNode = PackedNode::createNode(suffix.length(),
-				suffix.c_str(), false, deltaScore - score, 0);
+				suffix.c_str(), false, deltaScore, 0);
 
 		PackedNode* parent = locus.back();
 
 		u_int64_t newNode_ptr;
 		bool nodeIsLastSibling = false;
 		if (parent->firstChildOffsetSize_ == 0) {
-			newNode_ptr = makeRoomBehindNode(parent, locus,
+			PackedNode* futureNodeToTheLeft = parent;
+			if (locus.size() != 1) {
+				locus.pop_back();
+				PackedNode* grandparent = locus.back();
+				locus.push_back(parent);
+
+				PackedNode* parentsLeftSiblingWithChild =
+						findFirstLeftSiblingWithChild(parent, grandparent);
+				if (parentsLeftSiblingWithChild != NULL) {
+					futureNodeToTheLeft = getLastChild(
+							parentsLeftSiblingWithChild);
+				}
+			}
+			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
 					newNode->getSize() + 1, nodeIsLastSibling) + 1;
-			parent->setFirstChildOffset(parent->getSize() + 1);
+			parent->setFirstChildOffset(
+					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
+							- reinterpret_cast<u_int64_t>(parent)
+							+ futureNodeToTheLeft->getSize() + 1);
 		} else {
-			newNode_ptr = makeRoomBehindNode(
-					findLeftSibling(deltaScore - score, parent), locus,
+			PackedNode* leftSibling = findLeftSiblingWithHigherScore(
+					deltaScore - score, parent);
+			newNode_ptr = makeRoomBehindNode(leftSibling, locus,
 					newNode->getSize(), nodeIsLastSibling);
+			leftSibling->isLastSibling = false;
+
 		}
+
 		newNode->isLastSibling = nodeIsLastSibling;
 		memcpy(reinterpret_cast<char*>(newNode_ptr), newNode,
 				newNode->getSize());
@@ -178,21 +189,23 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 			+ node->getSize();
 
 	/*
-	 * Calculate the additional shift due to increasing the firstChildOffset of the left siblings leading to
-	 * an extension of some of those nodes as the firstChildOffset field has to be increased if all bits are
-	 * already used
+	 * Calculate the additional shift due to increasing the firstChildOffset of the left siblings and parents
+	 * right siblings leading to an extension of some of those nodes as the firstChildOffset field has to be
+	 * increased if all bits are already used
 	 */
 	PackedNode* parent = parentLocus.back();
 	uint bytesToShiftForFirstChildOffsetExtension = 0;
 	if (parent->firstChildOffsetSize_ != 0) {
-		u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
+		u_int64_t parentsLastSibling_ptr = reinterpret_cast<u_int64_t>(parent)
 				+ parent->getFirstChildOffset();
 
-		PackedNode* sibling;
+		// Start with the first right sibling of parent
+		u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
+				+ parent->getSize();
 
+		PackedNode* sibling;
 		while (sibling_ptr < firstRoomByte) {
 			sibling = reinterpret_cast<PackedNode*>(sibling_ptr);
-			sibling_ptr += sibling->getSize();
 			if (sibling->firstChildOffsetSize_ != 0) {
 				bytesToShiftForFirstChildOffsetExtension +=
 						sibling->bytesToExtendOnFirstChildOffsetChange(
@@ -201,10 +214,12 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 			/*
 			 * The new node will be the last sibling if the last of the left siblings was it
 			 */
-			if (sibling->isLastSibling) {
+			if (sibling->isLastSibling
+					&& sibling_ptr > parentsLastSibling_ptr) {
 				sibling->isLastSibling = false;
 				nodeIsLastSibling = true;
 			}
+			sibling_ptr += sibling->getSize();
 		}
 	} else {
 		nodeIsLastSibling = true;
@@ -216,11 +231,17 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 			node + node->getSize(),
 			firstFreeMem_ptr - 1 - reinterpret_cast<u_int64_t>(node)
 					+ node->getSize());
+
+	memset(
+			reinterpret_cast<char*>(firstRoomByte
+					+ bytesToShiftForFirstChildOffsetExtension), 0xAA,
+			width + bytesToShiftForFirstChildOffsetExtension);
+
 	/*
-	 * update firstChildOffset values of all siblings to the left
+	 * update firstChildOffset values of all nodes between node and parent
 	 */
 	u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
-			+ parent->getFirstChildOffset();
+			+ parent->getSize();
 	uint shift = bytesToShiftForFirstChildOffsetExtension + width;
 
 	while (sibling_ptr < firstRoomByte) {
@@ -262,8 +283,8 @@ void CompletionTrie::moveRightSiblings(PackedNode* leftSibling,
  * Returns the last child of parent with a higher score then defined by the given deltaScore
  * parent->firstChildOffsetSize_ may not be 0!
  */
-PackedNode* CompletionTrie::findLeftSibling(const u_int32_t deltaScore,
-		PackedNode* parent) {
+PackedNode* CompletionTrie::findLeftSiblingWithHigherScore(
+		const u_int32_t deltaScore, PackedNode* parent) {
 	u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
 			+ parent->getFirstChildOffset();
 
@@ -277,14 +298,64 @@ PackedNode* CompletionTrie::findLeftSibling(const u_int32_t deltaScore,
 	return NULL;
 }
 
+/**
+ * Returns the last child of parent left of node with a child
+ * parent->firstChildOffsetSize_ may not be 0!
+ */
+PackedNode* CompletionTrie::findFirstLeftSiblingWithChild(PackedNode* node,
+		PackedNode* parent) {
+	u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
+			+ parent->getFirstChildOffset();
+	PackedNode* lastSiblingWithChild = NULL;
+	PackedNode* sibling;
+	do {
+		sibling = reinterpret_cast<PackedNode*>(sibling_ptr);
+
+		if (sibling->firstChildOffsetSize_ != 0) {
+			lastSiblingWithChild = sibling;
+		}
+
+		sibling_ptr += sibling->getSize();
+	} while (!sibling->isLastSibling
+			&& sibling_ptr < reinterpret_cast<u_int64_t>(node));
+	return lastSiblingWithChild;
+}
+
+/**
+ * Returns the last child of parent
+ * parent->firstChildOffsetSize_ may not be 0!
+ */
+PackedNode* CompletionTrie::getLastChild(PackedNode* parent) {
+	u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
+			+ parent->getFirstChildOffset();
+	PackedNode* sibling;
+	do {
+		sibling = reinterpret_cast<PackedNode*>(sibling_ptr);
+		sibling_ptr += sibling->getSize();
+	} while (!sibling->isLastSibling);
+	return sibling;
+}
+
 void CompletionTrie::print() {
-	std::deque<PackedNode*> locus;
-	std::cout << "graph completionTrie {" << std::endl;
+	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
+			+ root->getFirstChildOffset();
+	do {
+		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
+		std::cout << node_ptr << "\t\""
+				<< std::string(node->getCharacters(), node->charactersSize_)
+				<< "\"\t" << node->getSize() << "\t"
+				<< node->getFirstChildOffset() - node->getSize() << std::endl;
+		node_ptr += node->getSize();
+	} while (node_ptr < firstFreeMem_ptr);
 
-	locus.push_back(root);
-	printNode(root, locus);
-
-	std::cout << "}" << std::endl;
+	//
+//	std::deque<PackedNode*> locus;
+//	std::cout << "graph completionTrie {" << std::endl;
+//
+//	locus.push_back(root);
+//	printNode(root, locus);
+//
+//	std::cout << "}" << std::endl;
 }
 
 /**

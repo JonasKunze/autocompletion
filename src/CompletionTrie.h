@@ -63,8 +63,13 @@ private:
 	 */
 	void moveRightSiblings(PackedNode* leftSibling, const uint width);
 
-	PackedNode* findLeftSibling(const u_int32_t deltaScore, PackedNode* parent);
+	PackedNode* findLeftSiblingWithHigherScore(const u_int32_t deltaScore,
+			PackedNode* parent);
 
+	PackedNode* findFirstLeftSiblingWithChild(PackedNode* node,
+			PackedNode* parent);
+
+	PackedNode* getLastChild(PackedNode* parent);
 	/**
 	 * Returns the first child of the given node. If the node does not have any children
 	 * the node itself is returned

@@ -19,12 +19,12 @@ PackedNode* PackedNode::createNode(const char characterSize,
 }
 
 PackedNode* PackedNode::createRootNode(char* memory) {
-	return createNode(memory, 0, 0, false, 0,
+	return createNode(memory, 0, 0, true, 0,
 			sizeof(PackedNode) + 1 /*1 byte to store child offset*/);
 }
 
-PackedNode* PackedNode::createNode(char* memory, const char characterSize, const char* characters,
-		const bool isLastSibling, const int deltaScore,
+PackedNode* PackedNode::createNode(char* memory, const char characterSize,
+		const char* characters, const bool isLastSibling, const u_int32_t deltaScore,
 		const int firstChildOffset) {
 
 	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
@@ -39,7 +39,7 @@ PackedNode* PackedNode::createNode(char* memory, const char characterSize, const
 	memcpy(node->characters_deltaScore_firstChildOffset_, characters,
 			characterSize);
 	memcpy(node->characters_deltaScore_firstChildOffset_ + characterSize,
-			&deltaScore, deltaScoreSize);
+			&deltaScore, numberOfBytesBy2bValue[deltaScoreSize]);
 
 	node->setFirstChildOffset(firstChildOffset);
 	return node;
