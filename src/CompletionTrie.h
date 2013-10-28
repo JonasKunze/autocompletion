@@ -54,14 +54,16 @@ private:
 	 */
 	u_int64_t makeRoomBehindNode(PackedNode* node,
 			std::deque<PackedNode*> parentLocus, const uint width,
-			bool& nodeIsLastSibling);
+			bool& nodeIsLastSibling, const u_int32_t extendParent = 0);
 
 	/**
-	 * Shifts all siblings right of node to the right by width bytes WITHOUT
+	 * Shifts all nodes right of leftNode to the right by width bytes WITHOUT
 	 * updating any child offset
 	 *
+	 * After that the last moved byte will be width left of stopPointer
 	 */
-	void moveRightSiblings(PackedNode* leftSibling, const int width);
+	void moveRightNodes(PackedNode* leftNode, const u_int64_t stopPointer,
+			const int width);
 
 	PackedNode* findLeftSiblingWithHigherScore(const u_int32_t deltaScore,
 			PackedNode* parent);

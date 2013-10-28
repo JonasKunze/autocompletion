@@ -10,6 +10,8 @@
 
 #include <sys/types.h>
 #include <cstring>
+#include <iostream>
+#include <string>
 
 /**
  * Returns the number of bytes needed to store the given integer with the following coding:
@@ -20,11 +22,11 @@
  *
  * TODO: This takes about 9µs and could be optimized, but it's not used too often
  */
-inline u_int8_t getNumberOfBytesToStore2b(const int i) {
-//	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
-	int msb;
-	asm("bsrl %1,%0" : "=r"(msb) : "r"(i));
-	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
+inline u_int8_t getNumberOfBytesToStore2b(int i) {
+	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
+//	int msb;
+//	asm("bsr %1,%0" : "=r"(msb) : "r"(i));
+//	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
 }
 
 const u_int8_t numberOfBytesBy2bValue[] = { 0, 1, 2, 4 };
