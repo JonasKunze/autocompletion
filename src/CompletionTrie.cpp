@@ -159,17 +159,24 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 			 * +1 as the parent node will by increased by 1 byte as it now hast to store
 			 * the first child offset
 			 */
+//			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
+//					newNode->getSize() + 1, nodeIsLastSibling) + 1;
+			// TODOD: why this +1 here? It should not be needed as we do another makeRoomBehindNode a few lines below
 			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
-					newNode->getSize() + 1, nodeIsLastSibling) + 1;
+					newNode->getSize()+1, nodeIsLastSibling) + 1;
 
 			/*
 			 * Make room for the first child offset byte of parent
 			 */
-			const u_int64_t endOfParent_ptr =
-					reinterpret_cast<u_int64_t>(parent) + parent->getSize();
-			memmove(reinterpret_cast<char*>(endOfParent_ptr + 1),
-					reinterpret_cast<char*>(endOfParent_ptr),
-					newNode_ptr - endOfParent_ptr + parent->getSize());
+			locus.pop_back();
+			makeRoomBehindNode(parent, locus, 1, nodeIsLastSibling);
+			locus.push_back(parent);
+
+//			const u_int64_t endOfParent_ptr =
+//					reinterpret_cast<u_int64_t>(parent) + parent->getSize();
+//			memmove(reinterpret_cast<char*>(endOfParent_ptr + 1),
+//					reinterpret_cast<char*>(endOfParent_ptr),
+//					newNode_ptr - endOfParent_ptr + parent->getSize());
 
 			parent->setFirstChildOffset(
 					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
@@ -355,20 +362,24 @@ void CompletionTrie::print() {
 			+ root->getFirstChildOffset();
 	do {
 		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
+		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
+				+ node->getFirstChildOffset());
 		std::cout << node_ptr << "\t\""
 				<< std::string(node->getCharacters(), node->charactersSize_)
 				<< "\"\t" << node->getSize() << "\t"
-				<< node->getFirstChildOffset() - node->getSize() << std::endl;
+				<< (int) (u_int8_t) (node->getFirstChildOffset()
+						- node->getSize()) << "\t\""
+				<< std::string(firstChild->getCharacters(),
+						firstChild->charactersSize_) << "\"" << std::endl;
 		node_ptr += node->getSize();
 	} while (node_ptr < firstFreeMem_ptr);
-
-	std::deque<PackedNode*> locus;
-	std::cout << "graph completionTrie {" << std::endl;
-
-	locus.push_back(root);
-	printNode(root, locus);
-
-	std::cout << "}" << std::endl;
+//	std::deque<PackedNode*> locus;
+//	std::cout << "graph completionTrie {" << std::endl;
+//
+//	locus.push_back(root);
+//	printNode(root, locus);
+//
+//	std::cout << "}" << std::endl;
 }
 
 /**
