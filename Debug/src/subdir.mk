@@ -5,16 +5,19 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/CompletionTrie.cpp \
+../src/CompletionTrieBuilder.cpp \
 ../src/PackedNode.cpp \
 ../src/main.cpp 
 
 OBJS += \
 ./src/CompletionTrie.o \
+./src/CompletionTrieBuilder.o \
 ./src/PackedNode.o \
 ./src/main.o 
 
 CPP_DEPS += \
 ./src/CompletionTrie.d \
+./src/CompletionTrieBuilder.d \
 ./src/PackedNode.d \
 ./src/main.d 
 
