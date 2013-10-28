@@ -7,13 +7,13 @@
 
 #include "CompletionTrie.h"
 
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <cstring>
-#include <iostream>
-#include <string>
-#include <vector>
+//#include <iostream>
+//#include <string>
+//#include <vector>
 
-#include "PackedNode.h"
+//#include "PackedNode.h"
 
 static u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF };
@@ -156,26 +156,17 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 			}
 
 			/*
-			 * +1 as the parent node will by increased by 1 byte as it now has to store
-			 * the first child offset
+			 * Make room for the new node
 			 */
-//			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
-//					newNode->getSize() + 1, nodeIsLastSibling) + 1;
-			// TODOD: why this +1 here? It should not be needed as we do another makeRoomBehindNode a few lines below
 			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
-					newNode->getSize(), nodeIsLastSibling, 1);
+					newNode->getSize(), nodeIsLastSibling, 0) + 1;
 
 			/*
-			 * Make room for the first child offset byte of parent
+			 * Make room for the additional byte parent will be extended to hold the offset
 			 */
-//			locus.pop_back();
-//			makeRoomBehindNode(parent, locus, 1, nodeIsLastSibling);
-//			locus.push_back(parent);
-//			const u_int64_t endOfParent_ptr =
-//					reinterpret_cast<u_int64_t>(parent) + parent->getSize();
-//			memmove(reinterpret_cast<char*>(endOfParent_ptr + 1),
-//					reinterpret_cast<char*>(endOfParent_ptr),
-//					newNode_ptr - endOfParent_ptr + parent->getSize());
+			locus.pop_back();
+			makeRoomBehindNode(parent, locus, 1, nodeIsLastSibling, 0);
+
 			parent->setFirstChildOffset(
 					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
 							- reinterpret_cast<u_int64_t>(parent)
@@ -250,45 +241,36 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 			firstFreeMem_ptr - 1 - reinterpret_cast<u_int64_t>(node)
 					+ node->getSize());
 
-	memset(reinterpret_cast<char*>(firstRoomByte), 0xAA,
-			width + bytesToShiftForFirstChildOffsetExtension);
+	memset(reinterpret_cast<char*>(firstRoomByte), 0xAA, width);
 
 	memset(reinterpret_cast<char*>(firstRoomByte - extendParent), 0xBB,
 			extendParent);
 
-	if (extendParent != 0) {
-		memmove(
-				reinterpret_cast<char*>(parent) + parent->getSize()
-						+ extendParent,
-				reinterpret_cast<char*>(parent) + parent->getSize(),
-				reinterpret_cast<u_int64_t>(node) + width
-						+ bytesToShiftForFirstChildOffsetExtension
-						- (reinterpret_cast<u_int64_t>(parent)
-								+ parent->getSize()));
-	}
-
 	/*
-	 * update firstChildOffset values of all nodes between node and parent
+	 * update firstChildOffset values of all nodes between parent and node
 	 */
 	u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
 			+ parent->getSize();
 	uint shift = bytesToShiftForFirstChildOffsetExtension + width;
 
-	while (sibling_ptr < firstRoomByte) {
-		PackedNode* sibling = reinterpret_cast<PackedNode*>(sibling_ptr);
-		if (sibling->firstChildOffsetSize_ != 0) {
-			int8_t sizeChange = sibling->bytesToExtendOnFirstChildOffsetChange(
-					sibling->getFirstChildOffset() + width);
-			moveRightNodes(sibling, firstRoomByte, sizeChange);
+	if (firstRoomByte != firstFreeMem_ptr + 1) {
+		while (sibling_ptr < firstRoomByte) {
+			PackedNode* sibling = reinterpret_cast<PackedNode*>(sibling_ptr);
+			if (sibling->firstChildOffsetSize_ != 0) {
+				int8_t sizeChange =
+						sibling->bytesToExtendOnFirstChildOffsetChange(
+								sibling->getFirstChildOffset() + width);
+				moveRightNodes(sibling, firstRoomByte, sizeChange);
 
-			sibling->setFirstChildOffset(
-					sibling->getFirstChildOffset() + shift);
-			shift -= sizeChange;
+				sibling->setFirstChildOffset(
+						sibling->getFirstChildOffset() + shift);
+				shift -= sizeChange;
+			}
+			sibling_ptr += sibling->getSize();
 		}
-		sibling_ptr += sibling->getSize();
 	}
 	firstFreeMem_ptr += width + bytesToShiftForFirstChildOffsetExtension;
-	return firstRoomByte + bytesToShiftForFirstChildOffsetExtension;
+	return firstRoomByte;
 }
 
 void CompletionTrie::moveRightNodes(PackedNode* leftNode,
@@ -369,16 +351,17 @@ void CompletionTrie::print() {
 				<< "\"\t" << node->getSize() << "\t"
 				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
 				<< std::string(firstChild->getCharacters(),
-						firstChild->charactersSize_) << "\"" << std::endl;
+						firstChild->charactersSize_) << "\"" << "\t" << node->getDeltaScore() << std::endl;
 		node_ptr += node->getSize();
 	} while (node_ptr < firstFreeMem_ptr);
-//	std::deque<PackedNode*> locus;
-//	std::cout << "graph completionTrie {" << std::endl;
-//
-//	locus.push_back(root);
-//	printNode(root, locus);
-//
-//	std::cout << "}" << std::endl;
+
+	std::deque<PackedNode*> locus;
+	std::cout << "graph completionTrie {" << std::endl;
+
+	locus.push_back(root);
+	printNode(root, locus);
+
+	std::cout << "}" << std::endl;
 }
 
 /**
