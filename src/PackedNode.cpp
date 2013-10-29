@@ -24,8 +24,8 @@ PackedNode* PackedNode::createRootNode(char* memory) {
 }
 
 PackedNode* PackedNode::createNode(char* memory, const char characterSize,
-		const char* characters, const bool isLastSibling, const u_int32_t deltaScore,
-		const int firstChildOffset) {
+		const char* characters, const bool isLastSibling,
+		const u_int32_t deltaScore, const int firstChildOffset) {
 
 	const char deltaScoreSize = getNumberOfBytesToStore2b(deltaScore);
 

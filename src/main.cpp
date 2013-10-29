@@ -32,6 +32,13 @@ int main() {
 	std::cout << std::endl;
 	trie.addTerm("abcd1", 1234);
 	trie.print();
+	std::cout << std::endl;
+	trie.addTerm("abcd12", 1234);
+	trie.print();
+	std::cout << std::endl;
+	trie.addTerm("123457", 1234);
+	trie.print();
+	std::cout << std::endl;
 
 	std::cout << trie.findLocus("asdf123", return_foundTerm).size() << " : ";
 	std::cout << return_foundTerm << std::endl;

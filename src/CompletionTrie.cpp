@@ -131,7 +131,7 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		 *
 		 * TODO: Calculation of the length of the Node is faster instead of creating it on separate memory first
 		 *
-		 * TODO: check if suffix.length() > 7
+		 * TODO: check if suffix.length() > 7 and split into several nodes if necessary
 		 */
 		PackedNode* newNode = PackedNode::createNode(suffix.length(),
 				suffix.c_str(), false, deltaScore, 0);
@@ -159,23 +159,27 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 			 * Make room for the new node
 			 */
 			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
-					newNode->getSize(), nodeIsLastSibling, 0) + 1;
+					newNode->getSize(), nodeIsLastSibling, true) + 1;
 
 			/*
 			 * Make room for the additional byte parent will be extended to hold the offset
 			 */
-			locus.pop_back();
-			makeRoomBehindNode(parent, locus, 1, nodeIsLastSibling, 0);
+			if (futureNodeToTheLeft != parent) {
+				futureNodeToTheLeft =
+						reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(futureNodeToTheLeft)
+								+ 1);
+				locus.pop_back();
+				bool unused;
+				makeRoomBehindNode(parent, locus, 1, unused, false);
+			}
 
 			parent->setFirstChildOffset(
-					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
-							- reinterpret_cast<u_int64_t>(parent)
-							+ futureNodeToTheLeft->getSize() + 1);
+					newNode_ptr - reinterpret_cast<u_int64_t>(parent));
 		} else {
 			PackedNode* leftSibling = findLeftSiblingWithHigherScore(
 					deltaScore - score, parent);
 			newNode_ptr = makeRoomBehindNode(leftSibling, locus,
-					newNode->getSize(), nodeIsLastSibling);
+					newNode->getSize(), nodeIsLastSibling, true);
 			leftSibling->isLastSibling = false;
 
 		}
@@ -190,7 +194,7 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 
 u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 		std::deque<PackedNode*> parentLocus, const uint width,
-		bool& nodeIsLastSibling, const u_int32_t extendParent) {
+		bool& nodeIsLastSibling, const bool roomForNewNode) {
 
 	/*
 	 * The first byte of the new space if the left siblings would not change their length
@@ -204,11 +208,9 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 	 * increased if all bits are already used
 	 */
 	PackedNode* parent = parentLocus.back();
-	uint bytesToShiftForFirstChildOffsetExtension = extendParent;
+	uint bytesToShiftForFirstChildOffsetExtension = 0;
 	if (parent->firstChildOffsetSize_ != 0) {
-		u_int64_t parentsLastSibling_ptr = reinterpret_cast<u_int64_t>(parent)
-				+ parent->getFirstChildOffset();
-
+		bool foundParentsLastSibling = parent->isLastSibling;
 		// Start with the first right sibling of parent
 		u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
 				+ parent->getSize();
@@ -221,14 +223,22 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 						sibling->bytesToExtendOnFirstChildOffsetChange(
 								sibling->getFirstChildOffset() + width);
 			}
+
 			/*
 			 * The new node will be the last sibling if the last of the left siblings was it
 			 */
-			if (sibling->isLastSibling
-					&& sibling_ptr > parentsLastSibling_ptr) {
+			if (roomForNewNode && sibling->isLastSibling
+					&& foundParentsLastSibling) {
 				sibling->isLastSibling = false;
 				nodeIsLastSibling = true;
 			}
+
+			/*
+			 * The first node being last sibling is the last sibling of the parent.
+			 * So as soon as one node is last sibling foundParentsLastSibling must be true
+			 */
+			foundParentsLastSibling = foundParentsLastSibling
+					| sibling->isLastSibling;
 			sibling_ptr += sibling->getSize();
 		}
 	} else {
@@ -242,9 +252,6 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 					+ node->getSize());
 
 	memset(reinterpret_cast<char*>(firstRoomByte), 0xAA, width);
-
-	memset(reinterpret_cast<char*>(firstRoomByte - extendParent), 0xBB,
-			extendParent);
 
 	/*
 	 * update firstChildOffset values of all nodes between parent and node
@@ -351,7 +358,8 @@ void CompletionTrie::print() {
 				<< "\"\t" << node->getSize() << "\t"
 				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
 				<< std::string(firstChild->getCharacters(),
-						firstChild->charactersSize_) << "\"" << "\t" << node->getDeltaScore() << std::endl;
+						firstChild->charactersSize_) << "\"" << "\t"
+				<< node->isLastSibling << std::endl;
 		node_ptr += node->getSize();
 	} while (node_ptr < firstFreeMem_ptr);
 
