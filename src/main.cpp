@@ -19,6 +19,15 @@ struct PackedNode;
 using namespace std;
 
 int main() {
+//	char* c1 = "abcd";
+//	char* c2 = "abed";
+//	u_int64_t l1 = *((u_int64_t*) c1);
+//	u_int64_t l2 = *((u_int64_t*) c2);
+//	u_int64_t k = l1 ^ l2;
+//
+//	int r = ffsl(k);
+//	std::cout << ((r > 0) ? 1 + (r - 1) / 8 : 0) << std::endl;
+
 	bool return_foundTerm;
 	CompletionTrie trie;
 	trie.addTerm("12345", 1234);

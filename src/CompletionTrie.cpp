@@ -28,13 +28,74 @@ CompletionTrie::~CompletionTrie() {
 
 /**
  * Returns the node defining as many characters of {term} as possible. return_foundTerm will be set to
- * tru if the whole term is defined by the returned node
+ * true if the whole term is defined by the returned node
  *
  * @param term The string searched for
  * @param return_foundTerm true if the whole term is defined by the returned node
  *
  * @return The Node in the trie defining the maximum largest substring of term or the whole term
  */
+std::deque<PackedNode*> CompletionTrie::findLocusWithSubstr(
+		const std::string term, bool& return_foundTerm) {
+	std::deque<PackedNode*> resultLocus;
+
+	return_foundTerm = false;
+	uint charPos = 0;
+	const char* prefixChars = term.c_str();
+	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root);
+
+	u_int64_t currentNode_value;
+	PackedNode* currentNode;
+	int firstNonFittingByte;
+	do {
+		currentNode = reinterpret_cast<PackedNode*>(node_ptr);
+		currentNode_value = *((u_int64_t*) (currentNode));
+
+		/*
+		 * XOR of the two strings. Should be 0 if they are the same. The first bit being 1 indicates
+		 * the first characters that are unequal
+		 */
+		const long l1 = (currentNode_value >> 8)
+				& characterMask[currentNode->charactersSize_];
+		const long l2 = (*((u_int64_t*) (prefixChars + charPos)))
+				& characterMask[currentNode->charactersSize_];
+
+		firstNonFittingByte = ffsl(
+				(l1 ^ l2) & characterMask[currentNode->charactersSize_]);
+		firstNonFittingByte =
+				(firstNonFittingByte == 0) ?
+						0 : 1 + (firstNonFittingByte - 1) / 8;
+
+		if (firstNonFittingByte == 0) {
+			resultLocus.push_back(currentNode);
+			charPos += currentNode->charactersSize_;
+
+			if (charPos == term.size()
+					&& currentNode->firstChildOffsetSize_ == 0) {
+				// we've reached the end of the term
+				return_foundTerm = true;
+				return resultLocus;
+			}
+
+			if (currentNode->firstChildOffsetSize_ == 0) {
+				// No more children
+				// this node defines only a part of the term but we've reached the end
+				// It's like searching for "autocompletion" but only "auto" exists
+				return resultLocus;
+			}
+			node_ptr += currentNode->getFirstChildOffset();
+		} else {
+			/*
+			 * Move to the next sibling
+			 */
+			node_ptr += currentNode->getSize();
+		}
+	} while (firstNonFittingByte == 0
+			|| (firstNonFittingByte != 0 && !currentNode->isLastSibling));
+
+	return resultLocus;
+}
+
 std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 		bool& return_foundTerm) {
 	std::deque<PackedNode*> resultLocus;
@@ -101,7 +162,8 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		firstFreeMem_ptr = reinterpret_cast<u_int64_t>(node) + node->getSize();
 	} else {
 		bool foundCompleteTerm = false;
-		std::deque<PackedNode*> locus = findLocus(term, foundCompleteTerm);
+		std::deque<PackedNode*> locus = findLocusWithSubstr(term,
+				foundCompleteTerm);
 		if (foundCompleteTerm) {
 			// Term already exists!
 			return;
