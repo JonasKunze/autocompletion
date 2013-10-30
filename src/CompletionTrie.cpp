@@ -191,7 +191,7 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		/*
 		 * Create a new Node on a separate memory to define the length and copy it to mem afterwards
 		 *
-		 * TODO: Calculation of the length of the Node is faster instead of creating it on separate memory first
+		 * TODO: Calculation of the length of the Node is faster than creating it on separate memory first
 		 *
 		 * TODO: check if suffix.length() > 7 and split into several nodes if necessary
 		 */
