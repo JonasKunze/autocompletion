@@ -13,15 +13,23 @@ std::set<BuilderNode*, BuilderNodeComparator> BuilderNode::allNodes;
 
 bool BuilderNodeComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
+	if (left->deltaScore == right->deltaScore) {
+		return left->suffix < right->suffix;
+	}
 	return left->deltaScore < right->deltaScore;
 }
 
 bool BuilderNodeLayerComparator::operator()(const BuilderNode*& left,
 		const BuilderNode*& right) {
-	if (left->trieLayer != right->trieLayer) {
-		return left->trieLayer < right->trieLayer;
+	if (left->trieLayer == right->trieLayer) {
+
+		if (left->deltaScore == right->deltaScore) {
+			return left->suffix < right->suffix;
+		}
+		return left->deltaScore < right->deltaScore;
+
 	}
-	return left->deltaScore < right->deltaScore;
+	return left->trieLayer < right->trieLayer;
 }
 
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
