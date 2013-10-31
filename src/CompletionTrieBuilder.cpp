@@ -9,7 +9,10 @@
 
 #include <sys/types.h>
 #include <iostream>
-#include <memory>
+#include <iterator>
+
+#include "CompletionTrie.h"
+#include "PackedNode.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
 
@@ -19,6 +22,59 @@ CompletionTrieBuilder::CompletionTrieBuilder() :
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
 	// TODO Auto-generated destructor stub
+}
+
+CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
+	const u_int32_t memSize = BuilderNode::allNodes.size()
+			* PackedNode::getMaxSize();
+	u_int32_t memPointer = memSize;
+	char* mem = new char[memPointer];
+	/*
+	 *  mem is now at last position + 1. Moving N to the left will allow us to write N bytes
+	 */
+
+	u_int16_t currentLayer = 0;
+
+	for (auto it = BuilderNode::allNodes.rbegin();
+			it != BuilderNode::allNodes.rend(); ++it) {
+		BuilderNode* node = *it;
+		/*
+		 * Every time node->trieLayer changes the current node is the last sibling as we are
+		 * coming from the right side
+		 */
+		if (node->trieLayer != currentLayer) {
+			currentLayer = node->trieLayer;
+			node->isLastSibbling = true;
+		}
+		/*
+		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
+		 */
+		if (node->trieLayer == 0) {
+			node->deltaScore = 0;
+		}
+//		std::cout << node->suffix << " : " << (int) node->trieLayer
+//				<< std::endl;
+
+		memPointer -= node->calculatePackedNodeSize();
+		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
+				node->suffix.length(), node->suffix.c_str(),
+				node->isLastSibbling, node->deltaScore,
+				node->firstChildPointer - memPointer);
+		std::cout << memPointer << " ! " << (int) pNode->getSize() << " : "
+				<< (int) node->calculatePackedNodeSize() << std::endl;
+		/*
+		 * Update firstChildPointer every time. As we come from the right side the last
+		 * update will be the real first child
+		 */
+		if (node->parent != NULL) { // Root node does not have a parent
+			node->parent->firstChildPointer = memPointer;
+		}
+	}
+
+	char* finalMem = new char[memSize - memPointer];
+	memcpy(finalMem, mem + memPointer, memSize - memPointer);
+
+	return new CompletionTrie(mem, memSize);
 }
 
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {

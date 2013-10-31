@@ -9,9 +9,10 @@
 #define BUILDERNODE2_H_
 
 #include <sys/types.h>
-#include <memory>
 #include <set>
 #include <string>
+
+#include "PackedNode.h"
 
 class BuilderNode;
 
@@ -20,7 +21,7 @@ struct BuilderNodeComparator {
 };
 
 struct BuilderNodeLayerComparator {
-	bool operator()(const BuilderNode*& left, const BuilderNode*& right);
+	bool operator()(const BuilderNode* left, const BuilderNode* right);
 };
 
 class BuilderNode {
@@ -28,21 +29,32 @@ class BuilderNode {
 public:
 	BuilderNode* parent;
 	u_int16_t trieLayer;
+	bool isLastSibbling;
 	u_int32_t deltaScore;
 	std::string suffix;
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 
-	static std::set<BuilderNode*, BuilderNodeComparator> allNodes;
+	/*
+	 * The absolute pointer to the firstChild. Use this while writing this node to calculate the offset
+	 */
+	u_int32_t firstChildPointer;
+
+	static std::set<BuilderNode*, BuilderNodeLayerComparator> allNodes;
 
 	BuilderNode(BuilderNode* parent, u_int32_t _deltaScore,
 			std::string _suffix);
 	BuilderNode() :
-			trieLayer(0), deltaScore(0) {
+			parent(NULL), trieLayer(0), isLastSibbling(false), deltaScore(0), firstChildPointer(
+					0) {
 	}
 	virtual ~BuilderNode();
 
 	void addChild(BuilderNode* child);
 
+	u_int8_t calculatePackedNodeSize() {
+		return PackedNode::calculateSize(suffix.length(), deltaScore,
+				firstChildPointer);
+	}
 };
 
 #endif /* BUILDERNODE2_H_ */

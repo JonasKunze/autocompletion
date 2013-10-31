@@ -22,7 +22,7 @@ public:
 	virtual ~CompletionTrieBuilder();
 
 	void addString(std::string str, u_int32_t score);
-	CompletionTrie generateCompletionTrie();
+	CompletionTrie* generateCompletionTrie();
 	void print();
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);
 private:

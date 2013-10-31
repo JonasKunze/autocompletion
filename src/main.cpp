@@ -23,7 +23,10 @@ int main() {
 	builder.addString("abcd", 1234);
 	builder.addString("abd", 1234);
 
-	builder.print();
+//	builder.print();
+
+	CompletionTrie* trie = builder.generateCompletionTrie();
+	trie->print();
 
 //
 //	bool return_foundTerm;

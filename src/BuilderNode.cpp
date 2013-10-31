@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-std::set<BuilderNode*, BuilderNodeComparator> BuilderNode::allNodes;
+std::set<BuilderNode*, BuilderNodeLayerComparator> BuilderNode::allNodes;
 
 bool BuilderNodeComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
@@ -19,8 +19,8 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 	return left->deltaScore < right->deltaScore;
 }
 
-bool BuilderNodeLayerComparator::operator()(const BuilderNode*& left,
-		const BuilderNode*& right) {
+bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
+		const BuilderNode* right) {
 	if (left->trieLayer == right->trieLayer) {
 
 		if (left->deltaScore == right->deltaScore) {
@@ -34,10 +34,10 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode*& left,
 
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
 		const std::string _suffix) :
-		parent(_parent), trieLayer(parent == NULL ? 0 : parent->trieLayer + 1), deltaScore(
-				_deltaScore), suffix(_suffix) {
+		parent(_parent), trieLayer(parent == NULL ? 0 : parent->trieLayer + 1), isLastSibbling(
+				false), deltaScore(_deltaScore), suffix(_suffix), firstChildPointer(
+				0) {
 	allNodes.insert(this);
-	std::cout << suffix << "?!?!" << std::endl;
 }
 
 BuilderNode::~BuilderNode() {

@@ -45,7 +45,7 @@ struct PackedNode {
 	/*
 	 * Is this Node the last sibling?
 	 */
-	unsigned int isLastSibling :1;
+	unsigned int isLastSibling_ :1;
 
 	/*
 	 * Number of bytes used for the delta score value:
@@ -130,10 +130,17 @@ struct PackedNode {
 				- numberOfBytesBy2bValue[firstChildOffsetSize_];
 	}
 
-	int getSize() const {
+	u_int8_t getSize() const {
 		return sizeof(PackedNode) + charactersSize_
 				+ numberOfBytesBy2bValue[deltaScoreSize_]
 				+ numberOfBytesBy2bValue[firstChildOffsetSize_];
+	}
+
+	static u_int8_t calculateSize(const u_int8_t characterSize,
+			const u_int32_t deltaScore, const u_int32_t firstChildOffset) {
+		return sizeof(PackedNode) + characterSize
+				+ getNumberOfBytesToStore2b(deltaScore)
+				+ getNumberOfBytesToStore2b(firstChildOffset);
 	}
 
 	/**
