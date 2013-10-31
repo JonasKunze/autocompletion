@@ -23,13 +23,17 @@ public:
 
 	void addString(std::string str, u_int32_t score);
 	CompletionTrie generateCompletionTrie();
-
+	void print();
+	void printNode(std::shared_ptr<BuilderNode>,
+			std::deque<std::shared_ptr<BuilderNode> > locus);
 private:
 	std::shared_ptr<BuilderNode> root;
-	std::set<BuilderNode, BuilderNode> nodesSortedByScore;
 
 	std::deque<std::shared_ptr<BuilderNode> > findLocus(std::string term,
-			bool& return_foundTerm);
+			unsigned short& numberOfCharsFound, u_int32_t& score,
+			unsigned char& charsRemainingForLastNode);
+	void splitNode(std::shared_ptr<BuilderNode> node, unsigned char splitPos);
+
 };
 
 #endif /* COMPLETIONTRIEBUILDER_H_ */

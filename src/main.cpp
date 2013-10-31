@@ -19,6 +19,12 @@ using namespace std;
 int main() {
 	CompletionTrieBuilder builder;
 
+	builder.addString("a", 1234);
+	builder.addString("abcd", 1234);
+	builder.addString("abd", 1234);
+
+	builder.print();
+
 //
 //	bool return_foundTerm;
 //	CompletionTrie trie;
