@@ -14,8 +14,7 @@
 #define MAXIMUM_PREFIX_SIZE 7
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		root(new BuilderNode(std::shared_ptr<BuilderNode>(NULL), 0, "")) {
-
+		root(new BuilderNode(NULL, 0, "")) {
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
@@ -24,18 +23,17 @@ CompletionTrieBuilder::~CompletionTrieBuilder() {
 
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	if (root->children.size() == 0) {
-		std::shared_ptr<BuilderNode> child(
-				new BuilderNode(root, 0xFFFFFFFF, str));
+		BuilderNode* child(new BuilderNode(root, 0xFFFFFFFF, str));
 		root->children.insert(child);
 	} else {
 		u_int32_t parentScore = 0;
 
 		unsigned short numberOfCharsFound = 0;
 		unsigned char charsRemainingForLastNode = 0;
-		std::deque<std::shared_ptr<BuilderNode> > locus = findLocus(str,
-				numberOfCharsFound, parentScore, charsRemainingForLastNode);
+		std::deque<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
+				parentScore, charsRemainingForLastNode);
 
-		std::shared_ptr<BuilderNode> parent = locus.back();
+		BuilderNode* parent = locus.back();
 
 		if (numberOfCharsFound == str.length()) {
 			// the whole term was found
@@ -55,9 +53,8 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 		while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length()
 				!= 0) {
 			parent->addChild(
-					std::shared_ptr<BuilderNode>(
-							new BuilderNode(parent, score - parentScore,
-									nodePrefix)));
+
+			new BuilderNode(parent, score - parentScore, nodePrefix));
 
 			if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
 				prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
@@ -69,27 +66,27 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	}
 }
 
-void CompletionTrieBuilder::splitNode(std::shared_ptr<BuilderNode> node,
+void CompletionTrieBuilder::splitNode(BuilderNode* node,
 		unsigned char splitPos) {
 	std::string secondSuffix = node->suffix.substr(splitPos);
-	std::shared_ptr<BuilderNode> secondNode = std::shared_ptr<BuilderNode>(
-			new BuilderNode(node, node->deltaScore, secondSuffix));
+	BuilderNode* secondNode = new BuilderNode(node, node->deltaScore,
+			secondSuffix);
 
 	node->suffix = node->suffix.substr(0, splitPos);
 	node->addChild(secondNode);
 }
 
-std::deque<std::shared_ptr<BuilderNode> > CompletionTrieBuilder::findLocus(
+std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
 		const std::string term, unsigned short& numberOfCharsFound,
 		u_int32_t& score, unsigned char& charsRemainingForLastNode) {
 	score = 0xFFFFFFFF;
-	std::deque<std::shared_ptr<BuilderNode> > resultLocus;
+	std::deque<BuilderNode*> resultLocus;
 
 	std::string remainingPrefix = term;
 
-	std::shared_ptr<BuilderNode> parent = root;
+	BuilderNode* parent = root;
 
-	restart: for (std::shared_ptr<BuilderNode> node : parent->children) {
+	restart: for (BuilderNode* node : parent->children) {
 		short lastFitPos = -1;
 		for (unsigned short i = 0; i < node->suffix.length(); i++) {
 			if (remainingPrefix.at(i) != node->suffix.at(i)) {
@@ -121,7 +118,7 @@ std::deque<std::shared_ptr<BuilderNode> > CompletionTrieBuilder::findLocus(
 }
 
 void CompletionTrieBuilder::print() {
-	std::deque<std::shared_ptr<BuilderNode> > locus;
+	std::deque<BuilderNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;
 
 	locus.push_back(root);
@@ -130,19 +127,18 @@ void CompletionTrieBuilder::print() {
 	std::cout << "}" << std::endl;
 
 	std::cout << "================" << std::endl;
-	for (std::shared_ptr<BuilderNode> node : BuilderNode::allNodes) {
-		std::cout << node.get() << "!!" << std::endl;
-		std::cout << node.get()->suffix.size() << "!!" << std::endl;
+	for (BuilderNode* node : BuilderNode::allNodes) {
+		std::cout << node->suffix << "!!" << std::endl;
 	}
 }
 
 /**
  * Recursively prints a node and all its children in the dot format "parent -- child"
  */
-void CompletionTrieBuilder::printNode(std::shared_ptr<BuilderNode> parent,
-		std::deque<std::shared_ptr<BuilderNode> > locus) {
+void CompletionTrieBuilder::printNode(BuilderNode* parent,
+		std::deque<BuilderNode*> locus) {
 
-	for (std::shared_ptr<BuilderNode> child : parent->children) {
+	for (BuilderNode* child : parent->children) {
 		locus.push_back(child);
 		if (child->children.size() != 0) {
 			printNode(child, locus);

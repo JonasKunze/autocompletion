@@ -16,34 +16,32 @@
 class BuilderNode;
 
 struct BuilderNodeComparator {
-	bool operator()(const std::shared_ptr<BuilderNode>& left,
-			const std::shared_ptr<BuilderNode>& right);
+	bool operator()(const BuilderNode* left, const BuilderNode* right);
 };
 
 struct BuilderNodeLayerComparator {
-	bool operator()(const std::shared_ptr<BuilderNode>& left,
-			const std::shared_ptr<BuilderNode>& right);
+	bool operator()(const BuilderNode*& left, const BuilderNode*& right);
 };
 
 class BuilderNode {
 
 public:
-	std::shared_ptr<BuilderNode> parent;
+	BuilderNode* parent;
 	u_int16_t trieLayer;
 	u_int32_t deltaScore;
 	std::string suffix;
-	std::set<std::shared_ptr<BuilderNode>, BuilderNodeComparator> children;
+	std::set<BuilderNode*, BuilderNodeComparator> children;
 
-	static std::set<std::shared_ptr<BuilderNode>, BuilderNodeComparator> allNodes;
+	static std::set<BuilderNode*, BuilderNodeComparator> allNodes;
 
-	BuilderNode(std::shared_ptr<BuilderNode> parent, u_int32_t _deltaScore,
+	BuilderNode(BuilderNode* parent, u_int32_t _deltaScore,
 			std::string _suffix);
 	BuilderNode() :
 			trieLayer(0), deltaScore(0) {
 	}
 	virtual ~BuilderNode();
 
-	void addChild(std::shared_ptr<BuilderNode> child);
+	void addChild(BuilderNode* child);
 
 };
 

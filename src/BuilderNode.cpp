@@ -9,35 +9,33 @@
 
 #include <iostream>
 
-std::set<std::shared_ptr<BuilderNode>, BuilderNodeComparator> BuilderNode::allNodes;
+std::set<BuilderNode*, BuilderNodeComparator> BuilderNode::allNodes;
 
-bool BuilderNodeComparator::operator()(const std::shared_ptr<BuilderNode>& left,
-		const std::shared_ptr<BuilderNode>& right) {
+bool BuilderNodeComparator::operator()(const BuilderNode* left,
+		const BuilderNode* right) {
 	return left->deltaScore < right->deltaScore;
 }
 
-bool BuilderNodeLayerComparator::operator()(
-		const std::shared_ptr<BuilderNode>& left,
-		const std::shared_ptr<BuilderNode>& right) {
+bool BuilderNodeLayerComparator::operator()(const BuilderNode*& left,
+		const BuilderNode*& right) {
 	if (left->trieLayer != right->trieLayer) {
 		return left->trieLayer < right->trieLayer;
 	}
 	return left->deltaScore < right->deltaScore;
 }
 
-BuilderNode::BuilderNode(std::shared_ptr<BuilderNode> _parent,
-		u_int32_t _deltaScore, const std::string _suffix) :
-		parent(_parent), trieLayer(
-				parent.get() == NULL ? 0 : parent->trieLayer + 1), deltaScore(
+BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
+		const std::string _suffix) :
+		parent(_parent), trieLayer(parent == NULL ? 0 : parent->trieLayer + 1), deltaScore(
 				_deltaScore), suffix(_suffix) {
-	allNodes.insert(std::shared_ptr<BuilderNode>(this));
-	std::cout << suffix.size() << "?!?!" << std::endl;
+	allNodes.insert(this);
+	std::cout << suffix << "?!?!" << std::endl;
 }
 
 BuilderNode::~BuilderNode() {
 }
 
-void BuilderNode::addChild(std::shared_ptr<BuilderNode> child) {
+void BuilderNode::addChild(BuilderNode* child) {
 	children.insert(child);
 }
 
