@@ -8,39 +8,28 @@
 #ifndef COMPLETIONTRIEBUILDER_H_
 #define COMPLETIONTRIEBUILDER_H_
 
-#include <sys/types.h>
-#include <map>
-#include <string>
-#include <vector>
+#include <deque>
 #include <set>
+#include <string>
 
-struct BuilderNodeScoreComparator {
-	inline bool operator()(const BuilderNode& left, const BuilderNode& right) {
-		return left.deltaScore < right.deltaScore;
-	}
-};
+#include "BuilderNode.h"
 
-struct BuilderNode {
-	u_int32_t deltaScore;
-	std::string suffix;
-	std::set<BuilderNode, BuilderNodeScoreComparator> children;
-
-	BuilderNode(u_int32_t _deltaScore, std::string _suffix) :
-			deltaScore(_deltaScore), suffix(_suffix) {
-
-	}
-};
+class CompletionTrie;
 
 class CompletionTrieBuilder {
 public:
 	CompletionTrieBuilder();
 	virtual ~CompletionTrieBuilder();
 
-	void addString(std::string str);
-	char* generateCompletionTrie();
+	void addString(std::string str, u_int32_t score);
+	CompletionTrie generateCompletionTrie();
 
 private:
-	std::set<BuilderNode, BuilderNodeScoreComparator> nodesSortedByScore;
+	std::shared_ptr<BuilderNode> root;
+	std::set<BuilderNode, BuilderNode> nodesSortedByScore;
+
+	std::deque<std::shared_ptr<BuilderNode> > findLocus(std::string term,
+			bool& return_foundTerm);
 };
 
 #endif /* COMPLETIONTRIEBUILDER_H_ */

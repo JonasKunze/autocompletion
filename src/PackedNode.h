@@ -22,7 +22,7 @@
  *
  * TODO: This takes about 9µs and could be optimized, but it's not used too often
  */
-inline u_int8_t getNumberOfBytesToStore2b(int i) {
+inline u_int8_t getNumberOfBytesToStore2b(u_int32_t i) {
 	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
 //	int msb;
 //	asm("bsr %1,%0" : "=r"(msb) : "r"(i));

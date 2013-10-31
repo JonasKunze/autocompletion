@@ -7,13 +7,7 @@
 
 #include "CompletionTrie.h"
 
-//#include <sys/types.h>
 #include <cstring>
-//#include <iostream>
-//#include <string>
-//#include <vector>
-
-//#include "PackedNode.h"
 
 static u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF };
@@ -28,13 +22,74 @@ CompletionTrie::~CompletionTrie() {
 
 /**
  * Returns the node defining as many characters of {term} as possible. return_foundTerm will be set to
- * tru if the whole term is defined by the returned node
+ * true if the whole term is defined by the returned node
  *
  * @param term The string searched for
  * @param return_foundTerm true if the whole term is defined by the returned node
  *
  * @return The Node in the trie defining the maximum largest substring of term or the whole term
  */
+std::deque<PackedNode*> CompletionTrie::findLocusWithSubstr(
+		const std::string term, bool& return_foundTerm) {
+	std::deque<PackedNode*> resultLocus;
+
+	return_foundTerm = false;
+	uint charPos = 0;
+	const char* prefixChars = term.c_str();
+	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root);
+
+	u_int64_t currentNode_value;
+	PackedNode* currentNode;
+	int firstNonFittingByte;
+	do {
+		currentNode = reinterpret_cast<PackedNode*>(node_ptr);
+		currentNode_value = *((u_int64_t*) (currentNode));
+
+		/*
+		 * XOR of the two strings. Should be 0 if they are the same. The first bit being 1 indicates
+		 * the first characters that are unequal
+		 */
+		const long l1 = (currentNode_value >> 8)
+				& characterMask[currentNode->charactersSize_];
+		const long l2 = (*((u_int64_t*) (prefixChars + charPos)))
+				& characterMask[currentNode->charactersSize_];
+
+		firstNonFittingByte = ffsl(
+				(l1 ^ l2) & characterMask[currentNode->charactersSize_]);
+		firstNonFittingByte =
+				(firstNonFittingByte == 0) ?
+						0 : 1 + (firstNonFittingByte - 1) / 8;
+
+		if (firstNonFittingByte == 0) {
+			resultLocus.push_back(currentNode);
+			charPos += currentNode->charactersSize_;
+
+			if (charPos == term.size()
+					&& currentNode->firstChildOffsetSize_ == 0) {
+				// we've reached the end of the term
+				return_foundTerm = true;
+				return resultLocus;
+			}
+
+			if (currentNode->firstChildOffsetSize_ == 0) {
+				// No more children
+				// this node defines only a part of the term but we've reached the end
+				// It's like searching for "autocompletion" but only "auto" exists
+				return resultLocus;
+			}
+			node_ptr += currentNode->getFirstChildOffset();
+		} else {
+			/*
+			 * Move to the next sibling
+			 */
+			node_ptr += currentNode->getSize();
+		}
+	} while (firstNonFittingByte == 0
+			|| (firstNonFittingByte != 0 && !currentNode->isLastSibling));
+
+	return resultLocus;
+}
+
 std::deque<PackedNode*> CompletionTrie::findLocus(const std::string term,
 		bool& return_foundTerm) {
 	std::deque<PackedNode*> resultLocus;
@@ -101,7 +156,8 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		firstFreeMem_ptr = reinterpret_cast<u_int64_t>(node) + node->getSize();
 	} else {
 		bool foundCompleteTerm = false;
-		std::deque<PackedNode*> locus = findLocus(term, foundCompleteTerm);
+		std::deque<PackedNode*> locus = findLocusWithSubstr(term,
+				foundCompleteTerm);
 		if (foundCompleteTerm) {
 			// Term already exists!
 			return;
@@ -129,9 +185,9 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 		/*
 		 * Create a new Node on a separate memory to define the length and copy it to mem afterwards
 		 *
-		 * TODO: Calculation of the length of the Node is faster instead of creating it on separate memory first
+		 * TODO: Calculation of the length of the Node is faster than creating it on separate memory first
 		 *
-		 * TODO: check if suffix.length() > 7
+		 * TODO: check if suffix.length() > 7 and split into several nodes if necessary
 		 */
 		PackedNode* newNode = PackedNode::createNode(suffix.length(),
 				suffix.c_str(), false, deltaScore, 0);
@@ -159,23 +215,27 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 			 * Make room for the new node
 			 */
 			newNode_ptr = makeRoomBehindNode(futureNodeToTheLeft, locus,
-					newNode->getSize(), nodeIsLastSibling, 0) + 1;
+					newNode->getSize(), nodeIsLastSibling, true) + 1;
 
 			/*
 			 * Make room for the additional byte parent will be extended to hold the offset
 			 */
-			locus.pop_back();
-			makeRoomBehindNode(parent, locus, 1, nodeIsLastSibling, 0);
+			if (futureNodeToTheLeft != parent) {
+				futureNodeToTheLeft =
+						reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(futureNodeToTheLeft)
+								+ 1);
+				locus.pop_back();
+				bool unused;
+				makeRoomBehindNode(parent, locus, 1, unused, false);
+			}
 
 			parent->setFirstChildOffset(
-					reinterpret_cast<u_int64_t>(futureNodeToTheLeft)
-							- reinterpret_cast<u_int64_t>(parent)
-							+ futureNodeToTheLeft->getSize() + 1);
+					newNode_ptr - reinterpret_cast<u_int64_t>(parent));
 		} else {
 			PackedNode* leftSibling = findLeftSiblingWithHigherScore(
 					deltaScore - score, parent);
 			newNode_ptr = makeRoomBehindNode(leftSibling, locus,
-					newNode->getSize(), nodeIsLastSibling);
+					newNode->getSize(), nodeIsLastSibling, true);
 			leftSibling->isLastSibling = false;
 
 		}
@@ -190,7 +250,7 @@ void CompletionTrie::addTerm(const std::string term, const u_int32_t score) {
 
 u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 		std::deque<PackedNode*> parentLocus, const uint width,
-		bool& nodeIsLastSibling, const u_int32_t extendParent) {
+		bool& nodeIsLastSibling, const bool roomForNewNode) {
 
 	/*
 	 * The first byte of the new space if the left siblings would not change their length
@@ -204,11 +264,9 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 	 * increased if all bits are already used
 	 */
 	PackedNode* parent = parentLocus.back();
-	uint bytesToShiftForFirstChildOffsetExtension = extendParent;
+	uint bytesToShiftForFirstChildOffsetExtension = 0;
 	if (parent->firstChildOffsetSize_ != 0) {
-		u_int64_t parentsLastSibling_ptr = reinterpret_cast<u_int64_t>(parent)
-				+ parent->getFirstChildOffset();
-
+		bool foundParentsLastSibling = parent->isLastSibling;
 		// Start with the first right sibling of parent
 		u_int64_t sibling_ptr = reinterpret_cast<u_int64_t>(parent)
 				+ parent->getSize();
@@ -221,14 +279,22 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 						sibling->bytesToExtendOnFirstChildOffsetChange(
 								sibling->getFirstChildOffset() + width);
 			}
+
 			/*
 			 * The new node will be the last sibling if the last of the left siblings was it
 			 */
-			if (sibling->isLastSibling
-					&& sibling_ptr > parentsLastSibling_ptr) {
+			if (roomForNewNode && sibling->isLastSibling
+					&& foundParentsLastSibling) {
 				sibling->isLastSibling = false;
 				nodeIsLastSibling = true;
 			}
+
+			/*
+			 * The first node being last sibling is the last sibling of the parent.
+			 * So as soon as one node is last sibling foundParentsLastSibling must be true
+			 */
+			foundParentsLastSibling = foundParentsLastSibling
+					| sibling->isLastSibling;
 			sibling_ptr += sibling->getSize();
 		}
 	} else {
@@ -242,9 +308,6 @@ u_int64_t CompletionTrie::makeRoomBehindNode(PackedNode* node,
 					+ node->getSize());
 
 	memset(reinterpret_cast<char*>(firstRoomByte), 0xAA, width);
-
-	memset(reinterpret_cast<char*>(firstRoomByte - extendParent), 0xBB,
-			extendParent);
 
 	/*
 	 * update firstChildOffset values of all nodes between parent and node
@@ -351,7 +414,8 @@ void CompletionTrie::print() {
 				<< "\"\t" << node->getSize() << "\t"
 				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
 				<< std::string(firstChild->getCharacters(),
-						firstChild->charactersSize_) << "\"" << "\t" << node->getDeltaScore() << std::endl;
+						firstChild->charactersSize_) << "\"" << "\t"
+				<< node->isLastSibling << std::endl;
 		node_ptr += node->getSize();
 	} while (node_ptr < firstFreeMem_ptr);
 

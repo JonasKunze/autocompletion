@@ -26,8 +26,12 @@ public:
 	virtual ~CompletionTrie();
 
 	void addTerm(const std::string term, const u_int32_t score);
+	std::deque<PackedNode*> findLocusWithSubstr(const std::string term,
+			bool& return_foundTerm);
+
 	std::deque<PackedNode*> findLocus(const std::string term,
 			bool& return_foundTerm);
+
 	SimpleSuggestions* getSuggestions(const std::string prefix, const int k);
 
 	void print();
@@ -50,11 +54,14 @@ private:
 	 * Shifts all Nodes right of node to the right by width bytes and updates the
 	 * firstChildOffset of all left siblings
 	 *
+	 * @param roomForNewNode Set to true if the new room will be used for a new node. In
+	 * this case the left sibling's isLastSibling flag will be set to false
+	 *
 	 * @return A pointer to the first free byte (with width following free bytes)
 	 */
 	u_int64_t makeRoomBehindNode(PackedNode* node,
 			std::deque<PackedNode*> parentLocus, const uint width,
-			bool& nodeIsLastSibling, const u_int32_t extendParent = 0);
+			bool& nodeIsLastSibling, const bool roomForNewNode);
 
 	/**
 	 * Shifts all nodes right of leftNode to the right by width bytes WITHOUT
