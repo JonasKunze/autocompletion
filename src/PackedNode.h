@@ -13,6 +13,11 @@
 #include <iostream>
 #include <string>
 
+inline u_int8_t getNumberOfBytesToStore(u_int32_t i) {
+	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 :
+			i < (1 << 24) ? 3 : 4;
+}
+
 /**
  * Returns the number of bytes needed to store the given integer with the following coding:
  * 0: 0 bytes
@@ -23,7 +28,7 @@
  * TODO: This takes about 9µs and could be optimized, but it's not used too often
  */
 inline u_int8_t getNumberOfBytesToStore2b(u_int32_t i) {
-	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 4;
+	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 : 3;
 //	int msb;
 //	asm("bsr %1,%0" : "=r"(msb) : "r"(i));
 //	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
@@ -139,8 +144,8 @@ struct PackedNode {
 	static u_int8_t calculateSize(const u_int8_t characterSize,
 			const u_int32_t deltaScore, const u_int32_t firstChildOffset) {
 		return sizeof(PackedNode) + characterSize
-				+ getNumberOfBytesToStore2b(deltaScore)
-				+ getNumberOfBytesToStore2b(firstChildOffset);
+				+ getNumberOfBytesToStore(deltaScore)
+				+ getNumberOfBytesToStore(firstChildOffset);
 	}
 
 	/**

@@ -35,8 +35,6 @@ PackedNode* PackedNode::createNode(char* memory, const char characterSize,
 	node->charactersSize_ = characterSize;
 	node->isLastSibling_ = isLastSibling;
 	node->deltaScoreSize_ = deltaScoreSize;
-	node->deltaScoreSize_ = deltaScoreSize;
-	node->deltaScoreSize_ = deltaScoreSize;
 
 	memcpy(node->characters_deltaScore_firstChildOffset_, characters,
 			characterSize);

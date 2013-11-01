@@ -152,13 +152,13 @@ void CompletionTrie::print() {
 				+ node->getFirstChildOffset());
 		std::cout << node_ptr << "\t\""
 				<< std::string(node->getCharacters(), node->charactersSize_)
-				<< "\"\t" << node->getSize() << "\t"
+				<< "\"\t" << (int) node->getSize() << "\t"
 				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
 				<< std::string(firstChild->getCharacters(),
 						firstChild->charactersSize_) << "\"" << "\t"
 				<< node->isLastSibling_ << std::endl;
 		node_ptr += node->getSize();
-	} while (node_ptr < memSize);
+	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize);
 
 	std::deque<PackedNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;

@@ -8,8 +8,11 @@
 #include "CompletionTrieBuilder.h"
 
 #include <sys/types.h>
+#include <cstring>
 #include <iostream>
 #include <iterator>
+#include <vector>
+#include <algorithm>
 
 #include "CompletionTrie.h"
 #include "PackedNode.h"
@@ -17,7 +20,7 @@
 #define MAXIMUM_PREFIX_SIZE 7
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		root(new BuilderNode(NULL, 0, "")) {
+		root(new BuilderNode(NULL, 0xFFFFFFFF, "")) {
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
@@ -25,6 +28,9 @@ CompletionTrieBuilder::~CompletionTrieBuilder() {
 }
 
 CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
+	std::sort(BuilderNode::allNodes.begin(), BuilderNode::allNodes.end(),
+			BuilderNodeLayerComparator());
+
 	const u_int32_t memSize = BuilderNode::allNodes.size()
 			* PackedNode::getMaxSize();
 	u_int32_t memPointer = memSize;
@@ -33,7 +39,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	 *  mem is now at last position + 1. Moving N to the left will allow us to write N bytes
 	 */
 
-	u_int16_t currentLayer = 0;
+	BuilderNode* lastParent = NULL;
 
 	for (auto it = BuilderNode::allNodes.rbegin();
 			it != BuilderNode::allNodes.rend(); ++it) {
@@ -42,26 +48,32 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		 * Every time node->trieLayer changes the current node is the last sibling as we are
 		 * coming from the right side
 		 */
-		if (node->trieLayer != currentLayer) {
-			currentLayer = node->trieLayer;
+		if (node->parent != lastParent) {
+			lastParent = node->parent;
 			node->isLastSibbling = true;
 		}
 		/*
 		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
 		 */
 		if (node->trieLayer == 0) {
-			node->deltaScore = 0;
+			node->score = 0;
 		}
-//		std::cout << node->suffix << " : " << (int) node->trieLayer
-//				<< std::endl;
 
-		memPointer -= node->calculatePackedNodeSize();
-		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
-				node->suffix.length(), node->suffix.c_str(),
-				node->isLastSibbling, node->deltaScore,
-				node->firstChildPointer - memPointer);
-		std::cout << memPointer << " ! " << (int) pNode->getSize() << " : "
-				<< (int) node->calculatePackedNodeSize() << std::endl;
+		u_int32_t nodeSize = node->calculatePackedNodeSize(memPointer);
+		/*
+		 * Recalculate size as with the new offset the child offset might
+		 * need one more byte
+		 */
+		nodeSize = node->calculatePackedNodeSize(memPointer - nodeSize);
+
+		memPointer -= nodeSize;
+
+		PackedNode::createNode(mem + memPointer, node->suffix.length(),
+				node->suffix.c_str(), node->isLastSibbling,
+				node->getDeltaScore(),
+				node->firstChildPointer == 0 ?
+						0 : node->firstChildPointer - memPointer);
+
 		/*
 		 * Update firstChildPointer every time. As we come from the right side the last
 		 * update will be the real first child
@@ -73,21 +85,19 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 	char* finalMem = new char[memSize - memPointer];
 	memcpy(finalMem, mem + memPointer, memSize - memPointer);
-
-	return new CompletionTrie(mem, memSize);
+	delete[] mem;
+	return new CompletionTrie(finalMem, memSize - memPointer);
 }
 
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	if (root->children.size() == 0) {
-		BuilderNode* child(new BuilderNode(root, 0xFFFFFFFF, str));
+		BuilderNode* child(new BuilderNode(root, score, str));
 		root->children.insert(child);
 	} else {
-		u_int32_t parentScore = 0;
-
 		unsigned short numberOfCharsFound = 0;
 		unsigned char charsRemainingForLastNode = 0;
 		std::deque<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
-				parentScore, charsRemainingForLastNode);
+				charsRemainingForLastNode);
 
 		BuilderNode* parent = locus.back();
 
@@ -98,7 +108,7 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 			return;
 		}
 
-		if (charsRemainingForLastNode != 0) {
+		if (parent != root && charsRemainingForLastNode != 0) {
 			splitNode(parent,
 					parent->suffix.length() - charsRemainingForLastNode);
 		}
@@ -108,9 +118,11 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 		std::string nodePrefix;
 		while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length()
 				!= 0) {
-			parent->addChild(
 
-			new BuilderNode(parent, score - parentScore, nodePrefix));
+			if (parent->score < score) {
+				parent->score = score;
+			}
+			parent->addChild(new BuilderNode(parent, score, nodePrefix));
 
 			if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
 				prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
@@ -125,8 +137,7 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 void CompletionTrieBuilder::splitNode(BuilderNode* node,
 		unsigned char splitPos) {
 	std::string secondSuffix = node->suffix.substr(splitPos);
-	BuilderNode* secondNode = new BuilderNode(node, node->deltaScore,
-			secondSuffix);
+	BuilderNode* secondNode = new BuilderNode(node, node->score, secondSuffix);
 
 	node->suffix = node->suffix.substr(0, splitPos);
 	node->addChild(secondNode);
@@ -134,9 +145,10 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 
 std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
 		const std::string term, unsigned short& numberOfCharsFound,
-		u_int32_t& score, unsigned char& charsRemainingForLastNode) {
-	score = 0xFFFFFFFF;
+		unsigned char& charsRemainingForLastNode) {
 	std::deque<BuilderNode*> resultLocus;
+
+	resultLocus.push_back(root);
 
 	std::string remainingPrefix = term;
 
@@ -146,7 +158,7 @@ std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
 		short lastFitPos = -1;
 		for (unsigned short i = 0; i < node->suffix.length(); i++) {
 			if (remainingPrefix.at(i) != node->suffix.at(i)) {
-				break; // for(short i...
+				break; // for(short i... // Character at i does not fit
 			}
 			lastFitPos = i;
 			++numberOfCharsFound;
@@ -158,7 +170,6 @@ std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
 		 */
 		if (lastFitPos != -1) {
 			resultLocus.push_back(node);
-			score -= node->deltaScore;
 
 			remainingPrefix = remainingPrefix.substr(lastFitPos + 1);
 			if (remainingPrefix.size() == 0) {
@@ -184,7 +195,8 @@ void CompletionTrieBuilder::print() {
 
 	std::cout << "================" << std::endl;
 	for (BuilderNode* node : BuilderNode::allNodes) {
-		std::cout << node->suffix << "!!" << std::endl;
+		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
+				<< node->isLastSibbling << "!!" << std::endl;
 	}
 }
 
@@ -209,6 +221,7 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 		} else {
 			std::cout << parent->suffix;
 		}
-		std::cout << " -- " << child->suffix << std::endl;
+		std::cout << " -- " << child->suffix << " : " << child->isLastSibbling
+				<< std::endl;
 	}
 }

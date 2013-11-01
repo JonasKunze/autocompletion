@@ -29,7 +29,7 @@ private:
 	BuilderNode* root;
 
 	std::deque<BuilderNode*> findLocus(std::string term,
-			unsigned short& numberOfCharsFound, u_int32_t& score,
+			unsigned short& numberOfCharsFound,
 			unsigned char& charsRemainingForLastNode);
 	void splitNode(BuilderNode* node, unsigned char splitPos);
 

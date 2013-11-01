@@ -20,12 +20,15 @@ int main() {
 	CompletionTrieBuilder builder;
 
 	builder.addString("a", 1234);
-	builder.addString("abcd", 1234);
-	builder.addString("abd", 1234);
-
-//	builder.print();
+	builder.addString("ab", 1235);
+	builder.addString("abd", 1236);
+	builder.addString("bcd", 1236);
+	builder.addString("bdd", 1236);
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
+
+	builder.print();
+
 	trie->print();
 
 //
