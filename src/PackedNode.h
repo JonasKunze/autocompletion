@@ -141,6 +141,10 @@ struct PackedNode {
 				+ numberOfBytesBy2bValue[firstChildOffsetSize_];
 	}
 
+	bool isLeafNode() {
+		return firstChildOffsetSize_ == 0;
+	}
+
 	static u_int8_t calculateSize(const u_int8_t characterSize,
 			const u_int32_t deltaScore, const u_int32_t firstChildOffset) {
 		return sizeof(PackedNode) + characterSize
@@ -176,7 +180,6 @@ struct PackedNode {
 	static PackedNode* createNode(char* memory, const char characterSize,
 			const char* characters, const bool isLastSibling,
 			const u_int32_t deltaScore, const int firstChildOffset);
-
 }__attribute__((packed));
 
 #endif /* PACKEDNODE_H_ */

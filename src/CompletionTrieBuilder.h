@@ -8,7 +8,7 @@
 #ifndef COMPLETIONTRIEBUILDER_H_
 #define COMPLETIONTRIEBUILDER_H_
 
-#include <deque>
+#include <stack>
 #include <set>
 #include <string>
 
@@ -28,7 +28,7 @@ public:
 private:
 	BuilderNode* root;
 
-	std::deque<BuilderNode*> findLocus(std::string term,
+	std::stack<BuilderNode*> findLocus(std::string term,
 			unsigned short& numberOfCharsFound,
 			unsigned char& charsRemainingForLastNode);
 	void splitNode(BuilderNode* node, unsigned char splitPos);

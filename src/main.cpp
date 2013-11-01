@@ -8,11 +8,14 @@
 
 //#include <cstring>
 
-#include <deque>
+//#include <deque>
 #include <iostream>
+#include <memory>
+#include <string>
 
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
+#include "Suggestion.h"
 
 using namespace std;
 
@@ -27,9 +30,15 @@ int main() {
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
 
-	builder.print();
+//	builder.print();
+//
+//	trie->print();
 
-	trie->print();
+	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("ab",
+			5);
+	for (std::string s : suggestions->suggestedWords) {
+		std::cout << s << std::endl;
+	}
 
 //
 //	bool return_foundTerm;

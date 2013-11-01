@@ -8,11 +8,12 @@
 #include "CompletionTrieBuilder.h"
 
 #include <sys/types.h>
+#include <algorithm>
 #include <cstring>
+#include <deque>
 #include <iostream>
 #include <iterator>
 #include <vector>
-#include <algorithm>
 
 #include "CompletionTrie.h"
 #include "PackedNode.h"
@@ -96,10 +97,10 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	} else {
 		unsigned short numberOfCharsFound = 0;
 		unsigned char charsRemainingForLastNode = 0;
-		std::deque<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
+		std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
 				charsRemainingForLastNode);
 
-		BuilderNode* parent = locus.back();
+		BuilderNode* parent = locus.top();
 
 		if (numberOfCharsFound == str.length()) {
 			// the whole term was found
@@ -143,12 +144,12 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	node->addChild(secondNode);
 }
 
-std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
+std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		const std::string term, unsigned short& numberOfCharsFound,
 		unsigned char& charsRemainingForLastNode) {
-	std::deque<BuilderNode*> resultLocus;
+	std::stack<BuilderNode*> resultLocus;
 
-	resultLocus.push_back(root);
+	resultLocus.push(root);
 
 	std::string remainingPrefix = term;
 
@@ -169,7 +170,7 @@ std::deque<BuilderNode*> CompletionTrieBuilder::findLocus(
 		 * If we found a fitting node:
 		 */
 		if (lastFitPos != -1) {
-			resultLocus.push_back(node);
+			resultLocus.push(node);
 
 			remainingPrefix = remainingPrefix.substr(lastFitPos + 1);
 			if (remainingPrefix.size() == 0) {

@@ -9,18 +9,27 @@
 #define SUGGESTION_H_
 
 #include <string>
+#include <vector>
 
 /**
  * Suggestion containing only a String
  */
 struct SimpleSuggestions {
-	std::string* suggestedWords;
-
-	SimpleSuggestions(const int k) {
-		suggestedWords = new std::string[k];
+	std::vector<std::string> suggestedWords;
+	const u_int8_t k;
+	SimpleSuggestions(const u_int8_t _k) :
+			suggestedWords(), k(_k) {
 	}
+
 	~SimpleSuggestions() {
-		delete[] suggestedWords;
+	}
+
+	inline void addSuggestion(std::string suggestion) {
+		suggestedWords.push_back(suggestion);
+	}
+
+	inline bool isFull() const {
+		return suggestedWords.size() == k;
 	}
 };
 

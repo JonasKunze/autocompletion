@@ -10,9 +10,9 @@
 
 #include <sys/types.h>
 #include <deque>
-#include <map>
-#include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "PackedNode.h"
 
@@ -29,10 +29,10 @@ public:
 	std::deque<PackedNode*> findLocusWithSubstr(const std::string term,
 			bool& return_foundTerm);
 
-	std::deque<PackedNode*> findLocus(const std::string term,
-			bool& return_foundTerm);
+	PackedNode* findBestFitting(const std::string term, bool& return_foundTerm);
 
-	SimpleSuggestions* getSuggestions(const std::string prefix, const int k);
+	std::shared_ptr<SimpleSuggestions> getSuggestions(std::string prefix,
+			const int k);
 
 	void print();
 
@@ -50,7 +50,7 @@ private:
 	/**
 	 * Concatenates the characters of all nodes in the given locus
 	 */
-	static std::string generateStringFromLocus(std::deque<PackedNode*> locus) {
+	static std::string generateStringFromLocus(std::vector<PackedNode*> locus) {
 		std::string result;
 		result.reserve(64);
 
