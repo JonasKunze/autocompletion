@@ -93,47 +93,53 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 }
 
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
-	if (root->children.size() == 0) {
-		BuilderNode* child(new BuilderNode(root, score, str));
-		root->children.insert(child);
-	} else {
-		unsigned short numberOfCharsFound = 0;
-		unsigned char charsRemainingForLastNode = 0;
-		std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
-				charsRemainingForLastNode);
+	unsigned short numberOfCharsFound = 0;
+	unsigned char charsRemainingForLastNode = 0;
 
-		BuilderNode* parent = locus.top();
+	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
+			charsRemainingForLastNode);
 
-		if (numberOfCharsFound == str.length()) {
-			// the whole term was found
-			std::cout << "Trying to add '" << str << "' for the second time"
-					<< std::endl;
-			return;
+	BuilderNode* parent = locus.top();
+
+	if (numberOfCharsFound == str.length()) {
+		// the whole term was found
+		std::cout << "Trying to add '" << str << "' for the second time"
+				<< std::endl;
+		return;
+	}
+
+	if (parent != root && charsRemainingForLastNode != 0) {
+		splitNode(parent, parent->suffix.length() - charsRemainingForLastNode);
+	}
+
+	if (parent->children.size() == 0 && charsRemainingForLastNode == 0
+			&& parent != root) {
+		if (parent->suffix.length() != 1) {
+			splitNode(parent, parent->suffix.length() - 1);
+			numberOfCharsFound--;
+		} else {
+			numberOfCharsFound -= parent->suffix.length();
+			locus.pop();
+			parent = locus.top();
+
 		}
+	}
 
-		if (parent != root && charsRemainingForLastNode != 0) {
-			splitNode(parent,
-					parent->suffix.length() - charsRemainingForLastNode);
+	std::string prefix = str.substr(numberOfCharsFound);
+
+	std::string nodePrefix;
+	while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length() != 0) {
+
+		if (parent->score < score) {
+			parent->score = score;
 		}
+		parent->addChild(new BuilderNode(parent, score, nodePrefix));
 
-		std::string prefix = str.substr(numberOfCharsFound);
-
-		std::string nodePrefix;
-		while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length()
-				!= 0) {
-
-			if (parent->score < score) {
-				parent->score = score;
-			}
-			parent->addChild(new BuilderNode(parent, score, nodePrefix));
-
-			if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
-				prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
-			} else {
-				break;
-			}
+		if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
+			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
+		} else {
+			break;
 		}
-
 	}
 }
 
@@ -157,31 +163,60 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 	BuilderNode* parent = root;
 
+	BuilderNode* nextParent = NULL;
+	short nextParentsLastFitPos = -1;
+	short nextParentsNumberOfCharsFound = 0;
 	restart: for (BuilderNode* node : parent->children) {
+		/*
+		 * Ignore leaf nodes with only one character
+		 */
+		if (node->suffix.size() == 1 && node->isLeafNode()) {
+			continue;
+		}
+
 		short lastFitPos = -1;
+		short numberOfCharsFoundCurrent = 0;
 		for (unsigned short i = 0; i < node->suffix.length(); i++) {
 			if (remainingPrefix.at(i) != node->suffix.at(i)) {
 				break; // for(short i... // Character at i does not fit
 			}
 			lastFitPos = i;
-			++numberOfCharsFound;
+			++numberOfCharsFoundCurrent;
 		}
-		charsRemainingForLastNode = node->suffix.length() - lastFitPos - 1;
 
 		/*
 		 * If we found a fitting node:
 		 */
 		if (lastFitPos != -1) {
-			resultLocus.push(node);
-
-			remainingPrefix = remainingPrefix.substr(lastFitPos + 1);
-			if (remainingPrefix.size() == 0) {
-				return resultLocus;
+			/*
+			 * If the node has a longer suffix than nextParent, nextParent will be set to node
+			 */
+			if (nextParent == NULL
+					|| node->suffix.length() > nextParent->suffix.length()) {
+				nextParent = node;
+				nextParentsLastFitPos = lastFitPos;
+				nextParentsNumberOfCharsFound = numberOfCharsFoundCurrent;
 			}
-
-			parent = node;
-			goto restart;
 		}
+	}
+	/*
+	 * We've gone through all children of parent. Now Let's have a look at the children of the node
+	 * with the longest suffix found being `nextParent`
+	 */
+	if (nextParent != NULL) {
+		charsRemainingForLastNode = nextParent->suffix.length()
+				- nextParentsLastFitPos - 1;
+		resultLocus.push(nextParent);
+
+		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
+		if (remainingPrefix.size() == 0) {
+			return resultLocus;
+		}
+		numberOfCharsFound += nextParentsNumberOfCharsFound;
+
+		parent = nextParent;
+		nextParent = NULL;
+		goto restart;
 	}
 
 	return resultLocus;
@@ -199,7 +234,8 @@ void CompletionTrieBuilder::print() {
 	std::cout << "================" << std::endl;
 	for (BuilderNode* node : BuilderNode::allNodes) {
 		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-				<< node->isLastSibbling << "!!" << std::endl;
+				<< node->isLastSibbling << "!!" << node->children.size()
+				<< std::endl;
 	}
 }
 

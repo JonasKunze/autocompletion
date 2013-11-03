@@ -8,10 +8,8 @@
 
 //#include <cstring>
 
-//#include <deque>
+#include <deque>
 #include <iostream>
-#include <memory>
-#include <string>
 
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
@@ -26,8 +24,9 @@ int main() {
 	builder.addString("ab", 1235);
 	builder.addString("abd", 1236);
 	builder.addString("abc", 1236);
-//	builder.addString("bcd", 1236);
-//	builder.addString("bdd", 1236);
+	builder.addString("abcefg", 1236);
+	builder.addString("bcd", 1236);
+	builder.addString("bdd", 1236);
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
 

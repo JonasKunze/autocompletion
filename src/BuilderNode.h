@@ -59,6 +59,10 @@ public:
 	inline u_int32_t getDeltaScore() const {
 		return parent != 0 ? score - parent->score : 0;
 	}
+
+	bool isLeafNode() {
+		return children.size() == 0;
+	}
 };
 
 #endif /* BUILDERNODE2_H_ */

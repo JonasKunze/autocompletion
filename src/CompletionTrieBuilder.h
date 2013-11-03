@@ -28,6 +28,15 @@ public:
 private:
 	BuilderNode* root;
 
+	/**
+	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned will never be leaf nodes
+	 *
+	 * @param numberOfCharsFound The number of characters that fit term. If it equals term.length() the whole term is
+	 * encoded in the returned list of nodes. Else term.substr(numberOfCharsFound) is the remaining suffix that needs
+	 * to be stored
+	 *
+	 * @charsRemainingForLastNode The number of characters of the last node that do not fit term
+	 */
 	std::stack<BuilderNode*> findLocus(std::string term,
 			unsigned short& numberOfCharsFound,
 			unsigned char& charsRemainingForLastNode);
