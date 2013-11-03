@@ -25,16 +25,17 @@ int main() {
 	builder.addString("a", 1234);
 	builder.addString("ab", 1235);
 	builder.addString("abd", 1236);
-	builder.addString("bcd", 1236);
-	builder.addString("bdd", 1236);
+	builder.addString("abc", 1236);
+//	builder.addString("bcd", 1236);
+//	builder.addString("bdd", 1236);
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
 
-//	builder.print();
-//
-//	trie->print();
+	builder.print();
 
-	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("ab",
+	trie->print();
+
+	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("a",
 			5);
 	for (std::string s : suggestions->suggestedWords) {
 		std::cout << s << std::endl;

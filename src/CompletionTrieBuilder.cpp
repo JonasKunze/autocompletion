@@ -25,7 +25,9 @@ CompletionTrieBuilder::CompletionTrieBuilder() :
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
-	// TODO Auto-generated destructor stub
+	for (BuilderNode* node : BuilderNode::allNodes) {
+		delete node;
+	}
 }
 
 CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {

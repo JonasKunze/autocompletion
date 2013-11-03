@@ -29,7 +29,8 @@ public:
 	std::deque<PackedNode*> findLocusWithSubstr(const std::string term,
 			bool& return_foundTerm);
 
-	PackedNode* findBestFitting(const std::string term, bool& return_foundTerm);
+	PackedNode* findBestFitting(const std::string term, bool& return_foundTerm,
+			int& remainingChars);
 
 	std::shared_ptr<SimpleSuggestions> getSuggestions(std::string prefix,
 			const int k);
@@ -67,6 +68,18 @@ private:
 	PackedNode* getFirstChild(PackedNode* parent) {
 		return reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(parent)
 				+ parent->getFirstChildOffset());
+	}
+
+	/**
+	 * Returns the next sibling of the given node. If the node does not have any sibling
+	 * NULL is returned
+	 */
+	PackedNode* getNextSibling(PackedNode* node) {
+		if (node->isLastSibling_) {
+			return NULL;
+		}
+		return reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(node)
+				+ node->getSize());
 	}
 
 	void printNode(PackedNode* parent, std::deque<PackedNode*> locus);

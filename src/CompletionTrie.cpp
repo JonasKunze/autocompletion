@@ -26,36 +26,42 @@ CompletionTrie::~CompletionTrie() {
 }
 
 std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
-		std::string prefix, const int k) {
+		std::string term, const int k) {
 	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
 
 	bool foundTerm;
-	PackedNode* node = findBestFitting(prefix, foundTerm);
-
-	std::map<u_int32_t, std::pair<PackedNode*, std::string>> nodes;
-	nodes.insert(std::make_pair(0xFFFFFFFF, std::make_pair(node, prefix)));
+	int remainingChars = 0;
+	PackedNode* node = findBestFitting(term, foundTerm, remainingChars);
 
 	if (node == root) {
 		return suggestions;
 	}
 
+	term = term.substr(0, term.length() - node->charactersSize_);
+
+	std::map<u_int32_t, std::pair<PackedNode*, std::string>> nodes;
+	nodes.insert(std::make_pair(0xFFFFFFFF, std::make_pair(node, term)));
+
 	u_int32_t score;
+	bool isFirstNode = true;
 	while (!nodes.empty()) {
+		score = nodes.rbegin()->first;
 		auto pair = nodes.rbegin()->second;
 		node = pair.first;
-		prefix = pair.second;
-		score = nodes.rbegin()->first;
+		std::string prefix = pair.second;
 		nodes.erase(score);
 
 		if (node->isLeafNode()) {
 			suggestions->addSuggestion(
-					prefix
+					term + prefix
 							+ std::string(node->getCharacters(),
 									node->charactersSize_));
 			if (suggestions->isFull()) {
 				return suggestions;
 			}
-		} else {
+		}
+
+		if (node->firstChildOffsetSize_ != 0) {
 			PackedNode* child = getFirstChild(node);
 			nodes.insert(
 					std::make_pair(score - child->getDeltaScore(),
@@ -64,18 +70,30 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 											+ std::string(node->getCharacters(),
 													node->charactersSize_))));
 		}
+
+		if (!isFirstNode) {
+			PackedNode* sibling = getNextSibling(node);
+			if (sibling != NULL) {
+				nodes.insert(
+						std::make_pair(score - sibling->getDeltaScore(),
+								std::make_pair(sibling, prefix)));
+			}
+		} else {
+			isFirstNode = false;
+		}
 	}
 
 	return suggestions;
 }
 
 PackedNode* CompletionTrie::findBestFitting(const std::string term,
-		bool& return_foundTerm) {
+		bool& return_foundTerm, int& remainingChars) {
 
 	return_foundTerm = false;
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
-	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root);
+	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
+			+ root->getFirstChildOffset();
 
 	u_int64_t currentNode_value;
 	PackedNode* currentNode;
@@ -94,10 +112,10 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 		if (nodeFits) {
 			charPos += currentNode->charactersSize_;
 
-			if (charPos == term.size()
-					&& currentNode->firstChildOffsetSize_ == 0) {
+			if (charPos == term.size()) {
 				// we've reached the end of the term
 				return_foundTerm = true;
+				remainingChars = 0;
 				return currentNode;
 			}
 
@@ -105,6 +123,7 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 				// No more children
 				// this node defines only a part of the term but we've reached the end
 				// It's like searching for "autocompletion" but only "auto" exists
+				remainingChars = term.length() - charPos;
 				return currentNode;
 			}
 			node_ptr += currentNode->getFirstChildOffset();
