@@ -17,6 +17,7 @@
 
 #include "CompletionTrie.h"
 #include "PackedNode.h"
+#include "Utils.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
 
@@ -195,6 +196,9 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	BuilderNode* nextParent = NULL;
 	short nextParentsLastFitPos = -1;
 	short nextParentsNumberOfCharsFound = 0;
+
+
+
 	restart: for (BuilderNode* node : parent->children) {
 		/*
 		 * Ignore leaf nodes with only one character
@@ -203,17 +207,27 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 			continue;
 		}
 
-		short lastFitPos = -1;
-		short numberOfCharsFoundCurrent = 0;
-		for (unsigned short i = 0;
-				i < node->suffix.length() && i < remainingPrefix.length();
-				i++) {
-			if (remainingPrefix.at(i) != node->suffix.at(i)) {
-				break; // for(short i... // Character at i does not fit
-			}
-			lastFitPos = i;
-			++numberOfCharsFoundCurrent;
+//		u_int8_t size = std::min(node->suffix.length(),
+//				remainingPrefix.length());
+		short lastFitPos = Utils::findFirstNonMatchingCharacter(
+				node->suffix.c_str(), remainingPrefix.c_str()) - 1;
+
+		if (lastFitPos != -1 && lastFitPos >= (short) node->suffix.length()) {
+			lastFitPos = node->suffix.length() - 1;
+		} else if (lastFitPos != -1
+				&& lastFitPos >= (short) remainingPrefix.length()) {
+			lastFitPos = remainingPrefix.length() - 1;
 		}
+
+//		short lastFitPos = -1;
+//		for (unsigned short i = 0;
+//				i < node->suffix.length() && i < remainingPrefix.length();
+//				i++) {
+//			if (remainingPrefix.at(i) != node->suffix.at(i)) {
+//				break; // for(short i... // Character at i does not fit
+//			}
+//			lastFitPos = i;
+//		}
 
 		/*
 		 * If we found a fitting node:
@@ -226,7 +240,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 					|| node->suffix.length() > nextParent->suffix.length()) {
 				nextParent = node;
 				nextParentsLastFitPos = lastFitPos;
-				nextParentsNumberOfCharsFound = numberOfCharsFoundCurrent;
+				nextParentsNumberOfCharsFound = lastFitPos + 1;
 			}
 		}
 	}

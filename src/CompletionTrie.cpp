@@ -14,8 +14,9 @@
 
 #include "Suggestion.h"
 
-static u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
-		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF };
+static const u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF,
+		0xFFFFFFFFFFFFFFFF };
 
 CompletionTrie::CompletionTrie(char* _mem, u_int32_t _memSize) :
 		root(reinterpret_cast<PackedNode*>(_mem)), mem(_mem), memSize(_memSize) {

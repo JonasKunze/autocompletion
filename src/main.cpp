@@ -44,17 +44,17 @@ static std::vector<std::pair<std::string, int> > readFile(
 int main() {
 	CompletionTrieBuilder builder;
 
-	long start = getCurrentMicroSeconds();
+	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-100000.tsv");
-	long time = getCurrentMicroSeconds() - start;
+			"data/wiki-10000.tsv");
+	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000l << " ms for reading file" << std::endl;
 
-	start = getCurrentMicroSeconds();
+	start = Utils::getCurrentMicroSeconds();
 	for (auto nodeValue : nodeValues) {
 		builder.addString(nodeValue.first, nodeValue.second);
 	}
-	time = getCurrentMicroSeconds() - start;
+	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000l << " ms for creating builder trie" << std::endl;
 
 //	builder.addString("abc", 1235);
