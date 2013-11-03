@@ -101,18 +101,42 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 
 	BuilderNode* parent = locus.top();
 
-	if (numberOfCharsFound == str.length()) {
+	if (numberOfCharsFound == str.length() && charsRemainingForLastNode == 0
+			&& parent->isLeafNode()) {
 		// the whole term was found
 		std::cout << "Trying to add '" << str << "' for the second time"
 				<< std::endl;
 		return;
 	}
 
-	if (parent != root && charsRemainingForLastNode != 0) {
-		splitNode(parent, parent->suffix.length() - charsRemainingForLastNode);
+	if (parent != root && charsRemainingForLastNode != 0
+			&& charsRemainingForLastNode < parent->suffix.length() - 1) {
+		/*
+		 * E.g. we've added abc and than ad. We need to split abc ad position 1
+		 * so that we have a->bc and cann add ad to a (than we have a->d, a->bc).
+		 *
+		 * In this case charsRemainingForLastNode will be 1
+		 */
+		splitNode(parent,
+				parent->suffix.length() - charsRemainingForLastNode - 1);
+		numberOfCharsFound--;
+	} else if (parent != root
+			&& charsRemainingForLastNode == parent->suffix.length() - 1) {
+		/*
+		 * E.g. we've added abc and than add a. We do not need to split abc as
+		 * we need a separate node 'a' as a leaf node. The new node's parent will be
+		 * the parent of abc in this case
+		 */
+		numberOfCharsFound -= parent->suffix.length()
+				- charsRemainingForLastNode;
+		locus.pop();
+		parent = locus.top();
 	}
 
-	if (parent->children.size() == 0 && charsRemainingForLastNode == 0
+	/*
+	 * If the parent is already a leaf node
+	 */
+	if (parent->isLeafNode() && charsRemainingForLastNode == 0
 			&& parent != root) {
 		if (parent->suffix.length() != 1) {
 			splitNode(parent, parent->suffix.length() - 1);
@@ -121,7 +145,6 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 			numberOfCharsFound -= parent->suffix.length();
 			locus.pop();
 			parent = locus.top();
-
 		}
 	}
 
@@ -149,6 +172,12 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	BuilderNode* secondNode = new BuilderNode(node, node->score, secondSuffix);
 
 	node->suffix = node->suffix.substr(0, splitPos);
+
+	/*
+	 * Move children from the original node to the second node
+	 */
+	secondNode->children = node->children;
+	node->children.clear();
 	node->addChild(secondNode);
 }
 
@@ -176,7 +205,9 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 		short lastFitPos = -1;
 		short numberOfCharsFoundCurrent = 0;
-		for (unsigned short i = 0; i < node->suffix.length(); i++) {
+		for (unsigned short i = 0;
+				i < node->suffix.length() && i < remainingPrefix.length();
+				i++) {
 			if (remainingPrefix.at(i) != node->suffix.at(i)) {
 				break; // for(short i... // Character at i does not fit
 			}
@@ -208,11 +239,12 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 				- nextParentsLastFitPos - 1;
 		resultLocus.push(nextParent);
 
+		numberOfCharsFound += nextParentsNumberOfCharsFound;
+
 		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
 		if (remainingPrefix.size() == 0) {
 			return resultLocus;
 		}
-		numberOfCharsFound += nextParentsNumberOfCharsFound;
 
 		parent = nextParent;
 		nextParent = NULL;
@@ -231,12 +263,12 @@ void CompletionTrieBuilder::print() {
 
 	std::cout << "}" << std::endl;
 
-	std::cout << "================" << std::endl;
-	for (BuilderNode* node : BuilderNode::allNodes) {
-		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-				<< node->isLastSibbling << "!!" << node->children.size()
-				<< std::endl;
-	}
+//	std::cout << "================" << std::endl;
+//	for (BuilderNode* node : BuilderNode::allNodes) {
+//		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
+//				<< node->isLastSibbling << "!!" << node->children.size()
+//				<< std::endl;
+//	}
 }
 
 /**
@@ -260,7 +292,7 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 		} else {
 			std::cout << parent->suffix;
 		}
-		std::cout << " -- " << child->suffix << " : " << child->isLastSibbling
-				<< std::endl;
+		std::cout << " -- " << child->suffix /*<< " : " << child->isLastSibbling*/
+		<< std::endl;
 	}
 }

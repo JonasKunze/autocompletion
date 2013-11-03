@@ -29,7 +29,8 @@ private:
 	BuilderNode* root;
 
 	/**
-	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned will never be leaf nodes
+	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned
+	 * will never be leaf nodes with only one character
 	 *
 	 * @param numberOfCharsFound The number of characters that fit term. If it equals term.length() the whole term is
 	 * encoded in the returned list of nodes. Else term.substr(numberOfCharsFound) is the remaining suffix that needs

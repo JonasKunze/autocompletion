@@ -8,37 +8,70 @@
 
 //#include <cstring>
 
-#include <deque>
-#include <iostream>
+//#include <deque>
+#include<iostream>
+#include<fstream>
+#include <memory>
+#include <string>
 
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "Suggestion.h"
+#include "Utils.h"
 
 using namespace std;
+
+static std::vector<std::pair<std::string, int> > readFile(
+		std::string fileName) {
+	std::vector<std::pair<std::string, int> > nodes;
+	ifstream myReadFile;
+	myReadFile.open(fileName);
+	if (myReadFile.is_open()) {
+		while (!myReadFile.eof()) {
+			std::string term;
+			u_int32_t score;
+
+			myReadFile >> term;
+			myReadFile >> score;
+
+			nodes.push_back(std::make_pair(term, score));
+		}
+	}
+	myReadFile.close();
+	return nodes;
+}
 
 int main() {
 	CompletionTrieBuilder builder;
 
-	builder.addString("a", 1234);
-	builder.addString("ab", 1235);
-	builder.addString("abd", 1236);
-	builder.addString("abc", 1236);
-	builder.addString("abcefg", 1236);
-	builder.addString("bcd", 1236);
-	builder.addString("bdd", 1236);
+	long start = getCurrentMicroSeconds();
+	std::vector<std::pair<std::string, int> > nodeValues = readFile(
+			"data/wiki-100000.tsv");
+	long time = getCurrentMicroSeconds() - start;
+	std::cout << time / 1000l << " ms for reading file" << std::endl;
+
+	start = getCurrentMicroSeconds();
+	for (auto nodeValue : nodeValues) {
+		builder.addString(nodeValue.first, nodeValue.second);
+	}
+	time = getCurrentMicroSeconds() - start;
+	std::cout << time / 1000l << " ms for creating builder trie" << std::endl;
+
+//	builder.addString("abc", 1235);
+//	builder.addString("abd", 1236);
+//	builder.addString("ab", 1236);
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
 
-	builder.print();
+//	builder.print();
 
-	trie->print();
+//	trie->print();
 
-	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("a",
-			5);
-	for (std::string s : suggestions->suggestedWords) {
-		std::cout << s << std::endl;
-	}
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("b",
+//			5);
+//	for (std::string s : suggestions->suggestedWords) {
+//		std::cout << s << std::endl;
+//	}
 
 //
 //	bool return_foundTerm;
