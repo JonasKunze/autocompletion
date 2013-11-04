@@ -21,8 +21,7 @@
 
 using namespace std;
 
-static std::vector<std::pair<std::string, int> > readFile(
-		std::string fileName) {
+std::vector<std::pair<std::string, int> > readFile(std::string fileName) {
 	std::vector<std::pair<std::string, int> > nodes;
 	ifstream myReadFile;
 	myReadFile.open(fileName);
@@ -41,9 +40,8 @@ static std::vector<std::pair<std::string, int> > readFile(
 	return nodes;
 }
 
-int main() {
+void performanceTest() {
 	CompletionTrieBuilder builder;
-
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
 			"data/wiki-10000.tsv");
@@ -57,46 +55,69 @@ int main() {
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000l << " ms for creating builder trie" << std::endl;
 
-//	builder.addString("abc", 1235);
-//	builder.addString("abd", 1236);
-//	builder.addString("ab", 1236);
-
 	CompletionTrie* trie = builder.generateCompletionTrie();
+	builder.print();
 
-//	builder.print();
+	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
+			10);
 
+	for (std::string str : suggestions->suggestedWords) {
+		std::cout << str << std::endl;
+	}
+
+	const char* chars =
+			(char*) "'.-_+0123456789abcdefghijklmnopqrstuvwxyz'.-_+0123456789abcdefghijklmnopqrstuvwxyz";
+
+	start = Utils::getCurrentMicroSeconds();
+	for (int i = 0; i < 1000; i++) {
+		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 41;
+		std::string randStr = std::string(&chars[pos], 3);
+		trie->getSuggestions(randStr, 10);
+	}
+	time = Utils::getCurrentMicroSeconds() - start;
+	std::cout << time / 1000 << " us for finding suggestions" << std::endl;
+
+	do {
+		std::string str;
+		std::cout << "Please enter search string: ";
+		std::cin >> str;
+
+		if (str == "\\q") {
+			return;
+		}
+
+		start = Utils::getCurrentMicroSeconds();
+		trie->getSuggestions(str, 10);
+		time = Utils::getCurrentMicroSeconds() - start;
+		std::cout << time << " us for finding suggestions" << std::endl;
+
+	} while (true);
+
+}
+
+int main() {
+//	CompletionTrieBuilder builder;
+//
+//	builder.addString("abcd", 1235);
+//	builder.addString("abd", 1236);
+//	builder.addString("abe", 1236);
+//	builder.addString("ab", 1236);
+//	builder.addString("a", 1236);
+//	builder.addString("b", 1236);
+//	builder.addString("bcd", 1236);
+//	builder.addString("bcdef", 1236);
+//
+//	CompletionTrie* trie = builder.generateCompletionTrie();
 //	trie->print();
-
-//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("b",
-//			5);
-//	for (std::string s : suggestions->suggestedWords) {
-//		std::cout << s << std::endl;
+//
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("a",
+//			10);
+//
+//	for (std::string str : suggestions->suggestedWords) {
+//		std::cout << str << std::endl;
 //	}
 
-//
-//	bool return_foundTerm;
-//	CompletionTrie trie;
-//	trie.addTerm("12345", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//	trie.addTerm("123456", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//	trie.addTerm("abcd", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//	trie.addTerm("abcd1", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//	trie.addTerm("abcd12", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//	trie.addTerm("123457", 1234);
-//	trie.print();
-//	std::cout << std::endl;
-//
-//	std::cout << trie.findLocus("asdf123", return_foundTerm).size() << " : ";
-//	std::cout << return_foundTerm << std::endl;
+	performanceTest();
 
 	return 0;
 }

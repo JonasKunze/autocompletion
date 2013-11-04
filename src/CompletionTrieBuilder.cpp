@@ -197,8 +197,6 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	short nextParentsLastFitPos = -1;
 	short nextParentsNumberOfCharsFound = 0;
 
-
-
 	restart: for (BuilderNode* node : parent->children) {
 		/*
 		 * Ignore leaf nodes with only one character
@@ -207,8 +205,6 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 			continue;
 		}
 
-//		u_int8_t size = std::min(node->suffix.length(),
-//				remainingPrefix.length());
 		short lastFitPos = Utils::findFirstNonMatchingCharacter(
 				node->suffix.c_str(), remainingPrefix.c_str()) - 1;
 
@@ -219,29 +215,14 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 			lastFitPos = remainingPrefix.length() - 1;
 		}
 
-//		short lastFitPos = -1;
-//		for (unsigned short i = 0;
-//				i < node->suffix.length() && i < remainingPrefix.length();
-//				i++) {
-//			if (remainingPrefix.at(i) != node->suffix.at(i)) {
-//				break; // for(short i... // Character at i does not fit
-//			}
-//			lastFitPos = i;
-//		}
-
 		/*
 		 * If we found a fitting node:
 		 */
 		if (lastFitPos != -1) {
-			/*
-			 * If the node has a longer suffix than nextParent, nextParent will be set to node
-			 */
-			if (nextParent == NULL
-					|| node->suffix.length() > nextParent->suffix.length()) {
-				nextParent = node;
-				nextParentsLastFitPos = lastFitPos;
-				nextParentsNumberOfCharsFound = lastFitPos + 1;
-			}
+			nextParent = node;
+			nextParentsLastFitPos = lastFitPos;
+			nextParentsNumberOfCharsFound = lastFitPos + 1;
+			break;
 		}
 	}
 	/*

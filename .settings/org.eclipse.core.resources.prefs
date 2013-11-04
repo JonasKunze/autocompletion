@@ -1,4 +1,5 @@
 eclipse.preferences.version=1
 encoding//src/CompletionTrie.cpp=UTF-8
+encoding//src/CompletionTrieBuilder.cpp=UTF-8
 encoding//src/PackedNode.h=UTF-8
 encoding//src/main.cpp=UTF-8
