@@ -55,11 +55,13 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		if (node->parent != lastParent) {
 			lastParent = node->parent;
 			node->isLastSibbling = true;
+		} else {
+			node->parent->score = node->score;
 		}
 		/*
 		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
 		 */
-		if (node->trieLayer == 0) {
+		if (node->isRootNode() == 0) {
 			node->score = 0;
 		}
 
@@ -96,42 +98,41 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
+	bool termAlreadyExists = false;
 
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
-			charsRemainingForLastNode);
+			charsRemainingForLastNode, termAlreadyExists);
 
-	BuilderNode* parent = locus.top();
-
-	if (numberOfCharsFound == str.length() && charsRemainingForLastNode == 0
-			&& parent->isLeafNode()) {
-		// the whole term was found
-		std::cout << "Trying to add '" << str << "' for the second time"
-				<< std::endl;
+	if (termAlreadyExists) {
+		std::cerr << "Term " << str << " already exists in trie!" << std::endl;
 		return;
 	}
 
+	BuilderNode* parent = locus.top();
+
 	if (parent != root && charsRemainingForLastNode != 0
-			&& charsRemainingForLastNode < parent->suffix.length() - 1) {
-		/*
-		 * E.g. we've added abc and than ad. We need to split abc ad position 1
-		 * so that we have a->bc and cann add ad to a (than we have a->d, a->bc).
-		 *
-		 * In this case charsRemainingForLastNode will be 1
-		 */
-		splitNode(parent,
-				parent->suffix.length() - charsRemainingForLastNode - 1);
-		numberOfCharsFound--;
-	} else if (parent != root
-			&& charsRemainingForLastNode == parent->suffix.length() - 1) {
-		/*
-		 * E.g. we've added abc and than add a. We do not need to split abc as
-		 * we need a separate node 'a' as a leaf node. The new node's parent will be
-		 * the parent of abc in this case
-		 */
-		numberOfCharsFound -= parent->suffix.length()
-				- charsRemainingForLastNode;
-		locus.pop();
-		parent = locus.top();
+			&& charsRemainingForLastNode < parent->suffix.length()) {
+
+		if (numberOfCharsFound == str.length()
+				&& parent->suffix.length() - charsRemainingForLastNode == 1) {
+			/*
+			 * E.g. we've added XXXabc and than XXXa. In this case we should not split abc but
+			 * add a to abc's parent XXX
+			 */
+			numberOfCharsFound -= parent->suffix.length()
+					- charsRemainingForLastNode;
+			locus.pop();
+			parent = locus.top();
+		} else {
+			/*
+			 * E.g. we've added abc and than ad. We need to split abc at position 1
+			 * so that we have a->bc and can add ad to a (than we have a->d, a->bc).
+			 *
+			 * In this case charsRemainingForLastNode will be 1
+			 */
+			splitNode(parent,
+					parent->suffix.length() - charsRemainingForLastNode);
+		}
 	}
 
 	/*
@@ -153,12 +154,9 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 
 	std::string nodePrefix;
 	while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length() != 0) {
-
-		if (parent->score < score) {
-			parent->score = score;
-		}
-		parent->addChild(new BuilderNode(parent, score, nodePrefix));
-
+		BuilderNode* child = new BuilderNode(parent, score, nodePrefix);
+		parent->addChild(child);
+		parent = child;
 		if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
 			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
 		} else {
@@ -180,11 +178,16 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	secondNode->children = node->children;
 	node->children.clear();
 	node->addChild(secondNode);
+
+	for (BuilderNode* child : secondNode->children) {
+		child->parent = secondNode;
+	}
 }
 
 std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		const std::string term, unsigned short& numberOfCharsFound,
-		unsigned char& charsRemainingForLastNode) {
+		unsigned char& charsRemainingForLastNode,
+		bool& return_termAlreadyExists) {
 	std::stack<BuilderNode*> resultLocus;
 
 	resultLocus.push(root);
@@ -195,16 +198,8 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 	BuilderNode* nextParent = NULL;
 	short nextParentsLastFitPos = -1;
-	short nextParentsNumberOfCharsFound = 0;
 
 	restart: for (BuilderNode* node : parent->children) {
-		/*
-		 * Ignore leaf nodes with only one character
-		 */
-		if (node->suffix.size() == 1 && node->isLeafNode()) {
-			continue;
-		}
-
 		short lastFitPos = Utils::findFirstNonMatchingCharacter(
 				node->suffix.c_str(), remainingPrefix.c_str()) - 1;
 
@@ -219,9 +214,20 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		 * If we found a fitting node:
 		 */
 		if (lastFitPos != -1) {
+			/*
+			 * Ignore leaf nodes with only one character
+			 */
+			if (node->suffix.size() == 1 && node->isLeafNode()) {
+				if (remainingPrefix.length() == 1) {
+					return_termAlreadyExists = true;
+					resultLocus.push(node);
+					return resultLocus;
+				}
+				continue;
+			}
+
 			nextParent = node;
 			nextParentsLastFitPos = lastFitPos;
-			nextParentsNumberOfCharsFound = lastFitPos + 1;
 			break;
 		}
 	}
@@ -234,10 +240,11 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 				- nextParentsLastFitPos - 1;
 		resultLocus.push(nextParent);
 
-		numberOfCharsFound += nextParentsNumberOfCharsFound;
+		numberOfCharsFound += nextParentsLastFitPos + 1;
 
 		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
-		if (remainingPrefix.size() == 0) {
+		if (remainingPrefix.size() == 0
+				|| nextParentsLastFitPos + 1 != nextParent->suffix.length()) {
 			return resultLocus;
 		}
 
@@ -287,7 +294,9 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 		} else {
 			std::cout << parent->suffix;
 		}
-		std::cout << " -- " << child->suffix /*<< " : " << child->isLastSibbling*/
-		<< std::endl;
+		std::cout << " -- " << child->suffix << " : "
+				<< (child->children.size() > 0 ?
+						(*child->children.begin())->suffix : "") << " : "
+				<< child->getTrieLayer() << std::endl;
 	}
 }

@@ -40,7 +40,8 @@ private:
 	 */
 	std::stack<BuilderNode*> findLocus(std::string term,
 			unsigned short& numberOfCharsFound,
-			unsigned char& charsRemainingForLastNode);
+			unsigned char& charsRemainingForLastNode,
+			bool& return_termAlreadyExists);
 	void splitNode(BuilderNode* node, unsigned char splitPos);
 
 };

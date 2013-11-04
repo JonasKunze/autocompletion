@@ -44,11 +44,13 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-10000.tsv");
+			"data/wiki-10.tsv");
+//			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000l << " ms for reading file" << std::endl;
 
 	start = Utils::getCurrentMicroSeconds();
+
 	for (auto nodeValue : nodeValues) {
 		builder.addString(nodeValue.first, nodeValue.second);
 	}
@@ -77,38 +79,60 @@ void performanceTest() {
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000 << " us for finding suggestions" << std::endl;
 
-	do {
-		std::string str;
-		std::cout << "Please enter search string: ";
-		std::cin >> str;
-
-		if (str == "\\q") {
-			return;
-		}
-
-		start = Utils::getCurrentMicroSeconds();
-		trie->getSuggestions(str, 10);
-		time = Utils::getCurrentMicroSeconds() - start;
-		std::cout << time << " us for finding suggestions" << std::endl;
-
-	} while (true);
+//	do {
+//		std::string str;
+//		std::cout << "Please enter search string: ";
+//		std::cin >> str;
+//
+//		if (str == "\\q") {
+//			return;
+//		}
+//
+//		start = Utils::getCurrentMicroSeconds();
+//		trie->getSuggestions(str, 10);
+//		time = Utils::getCurrentMicroSeconds() - start;
+//		std::cout << time << " us for finding suggestions" << std::endl;
+//
+//	} while (true);
 
 }
 
 int main() {
 //	CompletionTrieBuilder builder;
+
+//	builder.addString("'Outstanding", 175);
+//	builder.addString("'Operation", 141);
+//	builder.addString("'Open", 92);
+//	builder.print();
+
+//	builder.addString("abcdefg", 1235);
+//	builder.addString("a1234567b	", 1236);
+//	builder.addString("ab", 1236);
+
+//	builder.addString("abcdefgh", 1235);
+//	builder.addString("abcdefgh", 1236);
+//
+//	builder.addString("abc", 1235);
+//	builder.addString("abc", 1236);
+//
+//	builder.addString("a", 1235);
+//	builder.addString("a", 1236);
 //
 //	builder.addString("abcd", 1235);
-//	builder.addString("abd", 1236);
-//	builder.addString("abe", 1236);
-//	builder.addString("ab", 1236);
 //	builder.addString("a", 1236);
-//	builder.addString("b", 1236);
-//	builder.addString("bcd", 1236);
-//	builder.addString("bcdef", 1236);
+//	builder.addString("ae", 1236);
+//	builder.addString("afcd", 1235);
+//
+//	builder.addString("a", 1235);
+//	builder.addString("abc", 1236);
+//	builder.addString("ade", 1236);
+
+//	builder.addString("abc", 1236);
+//	builder.addString("abe", 1235);
+//	builder.addString("ade", 1236);
 //
 //	CompletionTrie* trie = builder.generateCompletionTrie();
-//	trie->print();
+//	builder.print();
 //
 //	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("a",
 //			10);

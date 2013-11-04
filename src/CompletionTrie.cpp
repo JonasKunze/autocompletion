@@ -34,7 +34,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	int remainingChars = 0;
 	PackedNode* node = findBestFitting(term, foundTerm, remainingChars);
 
-	if (node == root) {
+	if (node == root || node == NULL) {
 		return suggestions;
 	}
 
@@ -137,7 +137,7 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 
 	} while (nodeFits || (!nodeFits && !currentNode->isLastSibling_));
 
-	return currentNode;
+	return NULL;
 }
 
 void CompletionTrie::print() {

@@ -29,7 +29,6 @@ class BuilderNode {
 
 public:
 	BuilderNode* parent;
-	u_int16_t trieLayer;
 	bool isLastSibbling;
 	u_int32_t score;
 	std::string suffix;
@@ -44,8 +43,7 @@ public:
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			parent(NULL), trieLayer(0), isLastSibbling(false), score(0), firstChildPointer(
-					0) {
+			parent(NULL), isLastSibbling(false), score(0), firstChildPointer(0) {
 	}
 	virtual ~BuilderNode();
 
@@ -62,6 +60,14 @@ public:
 
 	bool isLeafNode() {
 		return children.size() == 0;
+	}
+
+	u_int16_t getTrieLayer() const {
+		return parent == NULL ? 0 : parent->getTrieLayer() + 1;
+	}
+
+	bool isRootNode() const {
+		return parent == NULL;
 	}
 };
 

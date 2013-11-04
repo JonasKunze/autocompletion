@@ -7,7 +7,7 @@
 
 #include "BuilderNode.h"
 
-#include <iostream>
+//#include <iostream>
 
 std::vector<BuilderNode*> BuilderNode::allNodes;
 
@@ -21,7 +21,7 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 
 bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
-	if (left->trieLayer == right->trieLayer) {
+	if (left->getTrieLayer() == right->getTrieLayer()) {
 
 		if (left->score == right->score) {
 			return left->suffix < right->suffix;
@@ -29,14 +29,13 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 		return left->score < right->score;
 
 	}
-	return left->trieLayer < right->trieLayer;
+	return left->getTrieLayer() < right->getTrieLayer();
 }
 
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
 		const std::string _suffix) :
-		parent(_parent), trieLayer(parent == NULL ? 0 : parent->trieLayer + 1), isLastSibbling(
-				false), score(_deltaScore), suffix(_suffix), firstChildPointer(
-				0) {
+		parent(_parent), isLastSibbling(false), score(_deltaScore), suffix(
+				_suffix), firstChildPointer(0) {
 	allNodes.push_back(this);
 }
 

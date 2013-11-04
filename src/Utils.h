@@ -34,7 +34,7 @@ public:
 
 		u_int64_t mask = (l1 ^ l2);
 		if (mask == 0) {
-			return 0;
+			return 8;
 		}
 
 		return ffsl(mask) / 8;
