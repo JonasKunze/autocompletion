@@ -56,7 +56,9 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 			lastParent = node->parent;
 			node->isLastSibbling = true;
 		} else {
-			node->parent->score = node->score;
+			if (node->parent != NULL) {
+				node->parent->score = node->score;
+			}
 		}
 		/*
 		 * The root node has no deltaScore as we'll hardcode the 0xffffffff

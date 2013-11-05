@@ -11,6 +11,7 @@
 #include <sys/time.h>
 const u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+
 class Utils {
 public:
 	static long getCurrentMicroSeconds() {

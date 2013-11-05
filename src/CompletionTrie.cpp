@@ -7,16 +7,12 @@
 
 #include "CompletionTrie.h"
 
-#include <deque>
 #include <iostream>
 #include <map>
 #include <utility>
 
 #include "Suggestion.h"
-
-static const u_int64_t characterMask[] = { 0, 0xFF, 0xFFFF, 0xFFFFFF,
-		0xFFFFFFFF, 0xFFFFFFFFFF, 0xFFFFFFFFFFFF, 0xFFFFFFFFFFFFFF,
-		0xFFFFFFFFFFFFFFFF };
+#include "Utils.h"
 
 CompletionTrie::CompletionTrie(char* _mem, u_int32_t _memSize) :
 		root(reinterpret_cast<PackedNode*>(_mem)), mem(_mem), memSize(_memSize) {
@@ -30,15 +26,20 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		std::string term, const int k) {
 	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
 
-	bool foundTerm;
-	int remainingChars = 0;
-	PackedNode* node = findBestFitting(term, foundTerm, remainingChars);
+	int termPrefixPos = 0;
+	bool termFoundAsLeaf = false;
+	std::vector<std::string> fittingLeafNodes;
+	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
+
+	term = term.substr(0, termPrefixPos);
+
+	for (std::string s : fittingLeafNodes) {
+		suggestions->addSuggestion(s);
+	}
 
 	if (node == root || node == NULL) {
 		return suggestions;
 	}
-
-	term = term.substr(0, term.length() - node->charactersSize_);
 
 	std::map<u_int32_t, std::pair<PackedNode*, std::string>> nodes;
 	nodes.insert(std::make_pair(0xFFFFFFFF, std::make_pair(node, term)));
@@ -54,7 +55,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 
 		if (node->isLeafNode()) {
 			suggestions->addSuggestion(
-					term + prefix
+					prefix
 							+ std::string(node->getCharacters(),
 									node->charactersSize_));
 			if (suggestions->isFull()) {
@@ -88,43 +89,50 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 }
 
 PackedNode* CompletionTrie::findBestFitting(const std::string term,
-		bool& return_foundTerm, int& remainingChars) {
+		int& return_prefixPos,
+		std::vector<std::string>& return_fittingLeafNodeStrings) {
 
-	return_foundTerm = false;
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
 
-	u_int64_t currentNode_value;
 	PackedNode* currentNode;
+	PackedNode* lastFittingNode = NULL;
 	bool nodeFits;
 	do {
 		currentNode = reinterpret_cast<PackedNode*>(node_ptr);
-		currentNode_value = *((u_int64_t*) (currentNode));
 
 		/*
 		 * Try if the N characters in the node match the next N characters of the prefix
 		 */
-		nodeFits = (currentNode_value >> 8
-				& characterMask[currentNode->charactersSize_])
-				== (*((u_int64_t*) (prefixChars + charPos))
-						& characterMask[currentNode->charactersSize_]);
-		if (nodeFits) {
-			charPos += currentNode->charactersSize_;
+//		nodeFits = (currentNode_value >> 8
+//				& characterMask[currentNode->charactersSize_])
+//				== (*((u_int64_t*) (prefixChars + charPos))
+//						& characterMask[currentNode->charactersSize_]);
+		nodeFits = Utils::findFirstNonMatchingCharacter(
+				((char*) currentNode) + 1, prefixChars + charPos) > 0;
 
-			if (charPos == term.size()) {
-				// we've reached the end of the term
-				return_foundTerm = true;
-				remainingChars = 0;
-				return currentNode;
+		if (nodeFits) {
+			return_prefixPos = charPos;
+			lastFittingNode = currentNode;
+
+			if (currentNode->isLeafNode()) {
+				/*
+				 * The term is stored in the trie. One suggestion should be the term as such (return_fittingLeafNode)
+				 * but we have to carry on searching for fitting nodes...
+				 */
+				node_ptr += currentNode->getSize();
+				return_fittingLeafNodeStrings.push_back(
+						term.substr(0, charPos + currentNode->charactersSize_));
+				continue;
 			}
 
+			charPos += currentNode->charactersSize_;
 			if (currentNode->firstChildOffsetSize_ == 0) {
 				// No more children
 				// this node defines only a part of the term but we've reached the end
 				// It's like searching for "autocompletion" but only "auto" exists
-				remainingChars = term.length() - charPos;
 				return currentNode;
 			}
 			node_ptr += currentNode->getFirstChildOffset();
@@ -135,9 +143,20 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 			node_ptr += currentNode->getSize();
 		}
 
-	} while (nodeFits || (!nodeFits && !currentNode->isLastSibling_));
+	} while ((nodeFits && charPos <= term.length())
+			|| ((charPos < term.length()
+					|| return_fittingLeafNodeStrings.size() == 0)
+					&& !currentNode->isLastSibling_));
 
-	return NULL;
+	if (lastFittingNode != NULL && !return_fittingLeafNodeStrings.empty()
+			&& term.substr(0, charPos) + lastFittingNode->getString()
+					== return_fittingLeafNodeStrings[return_fittingLeafNodeStrings.size()
+							- 1]) {
+		return_fittingLeafNodeStrings.erase(
+				return_fittingLeafNodeStrings.end());
+	}
+
+	return lastFittingNode;
 }
 
 void CompletionTrie::print() {

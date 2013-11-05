@@ -10,6 +10,7 @@
 
 #include <sys/types.h>
 #include <deque>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,8 +30,14 @@ public:
 	std::deque<PackedNode*> findLocusWithSubstr(const std::string term,
 			bool& return_foundTerm);
 
-	PackedNode* findBestFitting(const std::string term, bool& return_foundTerm,
-			int& remainingChars);
+	/**
+	 * Returns the Node that defines the longest string that has term as substring
+	 *
+	 * @param return_prefixPos The position of the last character in term not defined by the returned
+	 *  Node
+	 */
+	PackedNode* findBestFitting(const std::string term, int& return_prefixPos,
+			std::vector<std::string>& return_fittingLeafNodes);
 
 	std::shared_ptr<SimpleSuggestions> getSuggestions(std::string prefix,
 			const int k);

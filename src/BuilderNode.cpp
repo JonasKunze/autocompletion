@@ -9,6 +9,9 @@
 
 //#include <iostream>
 
+/*
+ * TODO allNodes must be saved per CompletionTrie to be able to have several tries within one process
+ */
 std::vector<BuilderNode*> BuilderNode::allNodes;
 
 bool BuilderNodeComparator::operator()(const BuilderNode* left,

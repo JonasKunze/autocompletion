@@ -89,6 +89,13 @@ struct PackedNode {
 	}
 
 	/**
+	 * Returns all characters of this node as a std::string
+	 */
+	std::string getString() {
+		return std::string(getCharacters(), charactersSize_);
+	}
+
+	/**
 	 * Returns the pointer to the character array
 	 */
 	u_int32_t getDeltaScore() {

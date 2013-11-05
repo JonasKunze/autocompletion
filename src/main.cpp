@@ -44,7 +44,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-10.tsv");
+			"data/wiki-1000.tsv");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000l << " ms for reading file" << std::endl;
@@ -58,7 +58,7 @@ void performanceTest() {
 	std::cout << time / 1000l << " ms for creating builder trie" << std::endl;
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
-	builder.print();
+//	builder.print();
 
 	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 			10);
@@ -99,10 +99,11 @@ void performanceTest() {
 
 int main() {
 //	CompletionTrieBuilder builder;
-
+//
 //	builder.addString("'Outstanding", 175);
 //	builder.addString("'Operation", 141);
 //	builder.addString("'Open", 92);
+//	builder.addString("'", 92);
 //	builder.print();
 
 //	builder.addString("abcdefg", 1235);
@@ -134,9 +135,10 @@ int main() {
 //	CompletionTrie* trie = builder.generateCompletionTrie();
 //	builder.print();
 //
-//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("a",
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'Ou",
 //			10);
 //
+//	std::cout << "!!" << std::endl;
 //	for (std::string str : suggestions->suggestedWords) {
 //		std::cout << str << std::endl;
 //	}
