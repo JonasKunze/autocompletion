@@ -16,6 +16,11 @@
 
 class CompletionTrie;
 
+struct BuilderNodeLayerComparator {
+	bool operator()(const BuilderNode* left, const BuilderNode* right);
+};
+
+
 class CompletionTrieBuilder {
 public:
 	CompletionTrieBuilder();

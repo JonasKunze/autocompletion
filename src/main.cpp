@@ -44,10 +44,11 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-1000.tsv");
+			"data/wiki-100000.tsv");
+//			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000l << " ms for reading file" << std::endl;
+	std::cout << time / 1000. << " ms for reading file" << std::endl;
 
 	start = Utils::getCurrentMicroSeconds();
 
@@ -55,10 +56,14 @@ void performanceTest() {
 		builder.addString(nodeValue.first, nodeValue.second);
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000l << " ms for creating builder trie" << std::endl;
+	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
 
+	start = Utils::getCurrentMicroSeconds();
 	CompletionTrie* trie = builder.generateCompletionTrie();
-//	builder.print();
+	time = Utils::getCurrentMicroSeconds() - start;
+	std::cout << time / 1000. << " ms for creating packed trie" << std::endl;
+
+//	trie->print();
 
 	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 			10);
@@ -71,15 +76,22 @@ void performanceTest() {
 			(char*) "'.-_+0123456789abcdefghijklmnopqrstuvwxyz'.-_+0123456789abcdefghijklmnopqrstuvwxyz";
 
 	start = Utils::getCurrentMicroSeconds();
-	for (int i = 0; i < 1000; i++) {
+	int runs = 1000;
+	for (int i = 0; i < runs; i++) {
 		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 41;
-		std::string randStr = std::string(&chars[pos], 3);
-		trie->getSuggestions(randStr, 10);
+		std::string randStr = std::string(&chars[pos], 6);
+		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
+				randStr, 10);
+
+//		for (std::string str : suggestions->suggestedWords) {
+//			std::cout << str << std::endl;
+//		}
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000 << " us for finding suggestions" << std::endl;
+	std::cout << time / (float) runs << " us for finding suggestions"
+			<< std::endl;
 
-//	do {
+	//	do {
 //		std::string str;
 //		std::cout << "Please enter search string: ";
 //		std::cin >> str;
@@ -89,9 +101,14 @@ void performanceTest() {
 //		}
 //
 //		start = Utils::getCurrentMicroSeconds();
-//		trie->getSuggestions(str, 10);
+//		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
+//				str, 10);
 //		time = Utils::getCurrentMicroSeconds() - start;
 //		std::cout << time << " us for finding suggestions" << std::endl;
+//
+//		for (std::string str : suggestions->suggestedWords) {
+//			std::cout << str << std::endl;
+//		}
 //
 //	} while (true);
 
@@ -99,6 +116,22 @@ void performanceTest() {
 
 int main() {
 //	CompletionTrieBuilder builder;
+//	builder.addString("'melville", 56);
+//	builder.addString("'national'", 58);
+//	builder.addString("'neutral'", 55);
+//
+//	builder.print();
+//
+//	CompletionTrie* trie = builder.generateCompletionTrie();
+//
+//	trie->print();
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
+//			10);
+//
+//	for (std::string str : suggestions->suggestedWords) {
+//		std::cout << str << std::endl;
+//	}
+
 //
 //	builder.addString("'Outstanding", 175);
 //	builder.addString("'Operation", 141);

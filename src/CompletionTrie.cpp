@@ -7,12 +7,25 @@
 
 #include "CompletionTrie.h"
 
+#include <algorithm>
 #include <iostream>
-#include <map>
-#include <utility>
+#include <iterator>
 
 #include "Suggestion.h"
 #include "Utils.h"
+
+struct NodeWithScoreStore {
+	u_int32_t score;
+	PackedNode* node;
+	std::string prefix;
+};
+
+struct NodeWithScoreStoreComparator {
+	bool operator()(const NodeWithScoreStore left,
+			const NodeWithScoreStore right) {
+		return left.score < right.score;
+	}
+};
 
 CompletionTrie::CompletionTrie(char* _mem, u_int32_t _memSize) :
 		root(reinterpret_cast<PackedNode*>(_mem)), mem(_mem), memSize(_memSize) {
@@ -27,9 +40,9 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
 
 	int termPrefixPos = 0;
-	bool termFoundAsLeaf = false;
 	std::vector<std::string> fittingLeafNodes;
 	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
+	std::vector<PackedNode*> v;
 
 	term = term.substr(0, termPrefixPos);
 
@@ -37,48 +50,60 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		suggestions->addSuggestion(s);
 	}
 
-	if (node == root || node == NULL) {
+	if (node == root || node == nullptr) {
 		return suggestions;
 	}
 
-	std::map<u_int32_t, std::pair<PackedNode*, std::string>> nodes;
-	nodes.insert(std::make_pair(0xFFFFFFFF, std::make_pair(node, term)));
+	std::vector<NodeWithScoreStore> nodesByScore;
+	nodesByScore.push_back( { 0xFFFFFFFF, node, term });
 
-	u_int32_t score;
 	bool isFirstNode = true;
-	while (!nodes.empty()) {
-		score = nodes.rbegin()->first;
-		auto pair = nodes.rbegin()->second;
-		node = pair.first;
-		std::string prefix = pair.second;
-		nodes.erase(score);
+	while (!nodesByScore.empty()) {
+//		std::sort(nodesByScore.begin(), nodesByScore.end(),
+//				NodeWithScoreStoreComparator());
+		NodeWithScoreStore nodeWithScore = *nodesByScore.begin();
+		nodesByScore.erase(nodesByScore.begin());
 
-		if (node->isLeafNode()) {
+		if (nodeWithScore.node->isLeafNode()) {
 			suggestions->addSuggestion(
-					prefix
-							+ std::string(node->getCharacters(),
-									node->charactersSize_));
+					nodeWithScore.prefix
+							+ std::string(nodeWithScore.node->getCharacters(),
+									nodeWithScore.node->charactersSize_));
 			if (suggestions->isFull()) {
 				return suggestions;
 			}
 		}
 
-		if (node->firstChildOffsetSize_ != 0) {
-			PackedNode* child = getFirstChild(node);
-			nodes.insert(
-					std::make_pair(score - child->getDeltaScore(),
-							std::make_pair(child,
-									prefix
-											+ std::string(node->getCharacters(),
-													node->charactersSize_))));
+		/*
+		 * Push first child to priority queue
+		 */
+		if (nodeWithScore.node->firstChildOffsetSize_ != 0) {
+			PackedNode* child = getFirstChild(nodeWithScore.node);
+			nodesByScore.push_back(
+					{ nodeWithScore.score, child, nodeWithScore.prefix
+							+ nodeWithScore.node->getString() });
+
+//			nodesByScore.insert(
+//					std::make_pair(score - child->getDeltaScore(),
+//							std::make_pair(child,
+//									prefix
+//											+ std::string(node->getCharacters(),
+//													node->charactersSize_))));
 		}
 
+		/*
+		 * Push next sibling to priority queue
+		 */
 		if (!isFirstNode) {
-			PackedNode* sibling = getNextSibling(node);
-			if (sibling != NULL) {
-				nodes.insert(
-						std::make_pair(score - sibling->getDeltaScore(),
-								std::make_pair(sibling, prefix)));
+			PackedNode* sibling = getNextSibling(nodeWithScore.node);
+			if (sibling != nullptr) {
+				nodesByScore.push_back(
+						{ nodeWithScore.score - sibling->getDeltaScore(),
+								sibling, nodeWithScore.prefix });
+
+//				nodesByScore.insert(
+//						std::make_pair(score - sibling->getDeltaScore(),
+//								std::make_pair(sibling, prefix)));
 			}
 		} else {
 			isFirstNode = false;
@@ -98,7 +123,7 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 			+ root->getFirstChildOffset();
 
 	PackedNode* currentNode;
-	PackedNode* lastFittingNode = NULL;
+	PackedNode* lastFittingNode = nullptr;
 	bool nodeFits;
 	do {
 		currentNode = reinterpret_cast<PackedNode*>(node_ptr);
@@ -148,7 +173,7 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 					|| return_fittingLeafNodeStrings.size() == 0)
 					&& !currentNode->isLastSibling_));
 
-	if (lastFittingNode != NULL && !return_fittingLeafNodeStrings.empty()
+	if (lastFittingNode != nullptr && !return_fittingLeafNodeStrings.empty()
 			&& term.substr(0, charPos) + lastFittingNode->getString()
 					== return_fittingLeafNodeStrings[return_fittingLeafNodeStrings.size()
 							- 1]) {
@@ -162,21 +187,27 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 void CompletionTrie::print() {
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
+	int layer = 0;
 	do {
 		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
 		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
 				+ node->getFirstChildOffset());
-		std::cout << node_ptr << "\t\""
-				<< std::string(node->getCharacters(), node->charactersSize_)
-				<< "\"\t" << (int) node->getSize() << "\t"
+		std::cout << std::string(node->getCharacters(), node->charactersSize_)
+				<< "\"\t"
+
+				<< (int) node->getSize() << "\t"
 				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
-				<< std::string(firstChild->getCharacters(),
-						firstChild->charactersSize_) << "\"" << "\t"
-				<< node->isLastSibling_ << std::endl;
+				<< firstChild->getString() << "\"" << "\t"
+				<< node->isLastSibling_ << "\t" << layer << std::endl;
+
+		if (node->isLastSibling_) {
+			layer++;
+		}
+
 		node_ptr += node->getSize();
 	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize);
 
-	std::deque<PackedNode*> locus;
+	std::vector<PackedNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;
 
 	locus.push_back(root);
@@ -189,7 +220,7 @@ void CompletionTrie::print() {
  * Recursively prints a node and all its children in the dot format "parent -- child"
  */
 void CompletionTrie::printNode(PackedNode* parent,
-		std::deque<PackedNode*> locus) {
+		std::vector<PackedNode*> locus) {
 	PackedNode* child = getFirstChild(parent);
 	if (child == parent) {
 		return;

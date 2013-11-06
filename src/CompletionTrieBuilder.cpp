@@ -21,8 +21,24 @@
 
 #define MAXIMUM_PREFIX_SIZE 7
 
+bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
+		const BuilderNode* right) {
+	if (left->getTrieLayer() == right->getTrieLayer()) {
+
+		if (left->getParent()->score == right->getParent()->score) {
+			if (left->score == right->score) {
+				return left->suffix < right->suffix;
+			}
+			return left->score < right->score;
+		}
+		return left->getParent()->score < right->getParent()->score;
+
+	}
+	return left->getTrieLayer() < right->getTrieLayer();
+}
+
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		root(new BuilderNode(NULL, 0xFFFFFFFF, "")) {
+		root(new BuilderNode(nullptr, 0xFFFFFFFF, "")) {
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
@@ -43,7 +59,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	 *  mem is now at last position + 1. Moving N to the left will allow us to write N bytes
 	 */
 
-	BuilderNode* lastParent = NULL;
+	BuilderNode* lastParent = nullptr;
 
 	for (auto it = BuilderNode::allNodes.rbegin();
 			it != BuilderNode::allNodes.rend(); ++it) {
@@ -52,12 +68,12 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		 * Every time node->trieLayer changes the current node is the last sibling as we are
 		 * coming from the right side
 		 */
-		if (node->parent != lastParent) {
-			lastParent = node->parent;
+		if (node->getParent() != lastParent) {
+			lastParent = node->getParent();
 			node->isLastSibbling = true;
 		} else {
-			if (node->parent != NULL) {
-				node->parent->score = node->score;
+			if (node->getParent() != nullptr) {
+				node->getParent()->score = node->score;
 			}
 		}
 		/*
@@ -86,8 +102,8 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		 * Update firstChildPointer every time. As we come from the right side the last
 		 * update will be the real first child
 		 */
-		if (node->parent != NULL) { // Root node does not have a parent
-			node->parent->firstChildPointer = memPointer;
+		if (node->getParent() != nullptr) { // Root node does not have a parent
+			node->getParent()->firstChildPointer = memPointer;
 		}
 	}
 
@@ -158,8 +174,8 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 	while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length() != 0) {
 		BuilderNode* child = new BuilderNode(parent, score, nodePrefix);
 		parent->addChild(child);
-		parent = child;
-		if (prefix.length() >= MAXIMUM_PREFIX_SIZE) {
+		if (prefix.length() > MAXIMUM_PREFIX_SIZE) {
+			parent = child;
 			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
 		} else {
 			break;
@@ -182,7 +198,7 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	node->addChild(secondNode);
 
 	for (BuilderNode* child : secondNode->children) {
-		child->parent = secondNode;
+		child->setParent(secondNode);
 	}
 }
 
@@ -198,7 +214,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 	BuilderNode* parent = root;
 
-	BuilderNode* nextParent = NULL;
+	BuilderNode* nextParent = nullptr;
 	short nextParentsLastFitPos = -1;
 
 	restart: for (BuilderNode* node : parent->children) {
@@ -237,7 +253,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	 * We've gone through all children of parent. Now Let's have a look at the children of the node
 	 * with the longest suffix found being `nextParent`
 	 */
-	if (nextParent != NULL) {
+	if (nextParent != nullptr) {
 		charsRemainingForLastNode = nextParent->suffix.length()
 				- nextParentsLastFitPos - 1;
 		resultLocus.push(nextParent);
@@ -251,7 +267,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		}
 
 		parent = nextParent;
-		nextParent = NULL;
+		nextParent = nullptr;
 		goto restart;
 	}
 

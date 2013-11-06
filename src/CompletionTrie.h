@@ -79,17 +79,17 @@ private:
 
 	/**
 	 * Returns the next sibling of the given node. If the node does not have any sibling
-	 * NULL is returned
+	 * nullptr is returned
 	 */
 	PackedNode* getNextSibling(PackedNode* node) {
 		if (node->isLastSibling_) {
-			return NULL;
+			return nullptr;
 		}
 		return reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(node)
 				+ node->getSize());
 	}
 
-	void printNode(PackedNode* parent, std::deque<PackedNode*> locus);
+	void printNode(PackedNode* parent, std::vector<PackedNode*> locus);
 };
 
 #endif /* COMPLETIONTRIE_H_ */

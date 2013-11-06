@@ -22,23 +22,11 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 	return left->score < right->score;
 }
 
-bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
-		const BuilderNode* right) {
-	if (left->getTrieLayer() == right->getTrieLayer()) {
-
-		if (left->score == right->score) {
-			return left->suffix < right->suffix;
-		}
-		return left->score < right->score;
-
-	}
-	return left->getTrieLayer() < right->getTrieLayer();
-}
-
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
 		const std::string _suffix) :
 		parent(_parent), isLastSibbling(false), score(_deltaScore), suffix(
-				_suffix), firstChildPointer(0) {
+				_suffix), firstChildPointer(0), trieLayer(
+				parent != nullptr ? parent->trieLayer + 1 : 0) {
 	allNodes.push_back(this);
 }
 

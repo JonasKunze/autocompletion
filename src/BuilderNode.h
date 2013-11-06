@@ -21,18 +21,16 @@ struct BuilderNodeComparator {
 	bool operator()(const BuilderNode* left, const BuilderNode* right);
 };
 
-struct BuilderNodeLayerComparator {
-	bool operator()(const BuilderNode* left, const BuilderNode* right);
-};
-
 class BuilderNode {
+private:
+	BuilderNode* parent;
 
 public:
-	BuilderNode* parent;
 	bool isLastSibbling;
 	u_int32_t score;
 	std::string suffix;
 	std::set<BuilderNode*, BuilderNodeComparator> children;
+	u_int16_t trieLayer;
 
 	/*
 	 * The absolute pointer to the firstChild. Use this while writing this node to calculate the offset
@@ -43,7 +41,8 @@ public:
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			parent(NULL), isLastSibbling(false), score(0), firstChildPointer(0) {
+			parent(nullptr), isLastSibbling(false), score(0), firstChildPointer(
+					0), trieLayer(0) {
 	}
 	virtual ~BuilderNode();
 
@@ -63,11 +62,30 @@ public:
 	}
 
 	u_int16_t getTrieLayer() const {
-		return parent == NULL ? 0 : parent->getTrieLayer() + 1;
+		return trieLayer;
 	}
 
 	bool isRootNode() const {
-		return parent == NULL;
+		return parent == nullptr;
+	}
+
+	BuilderNode* getParent() const {
+		return parent;
+	}
+
+	void setParent(BuilderNode* parent) {
+		this->parent = parent;
+		trieLayer = parent->trieLayer + 1;
+		for (BuilderNode* child : children) {
+			child->setTrieLayer(trieLayer + 1);
+		}
+	}
+
+	void setTrieLayer(u_int16_t _trieLayer) {
+		trieLayer = _trieLayer;
+		for (BuilderNode* child : children) {
+			child->setTrieLayer(trieLayer + 1);
+		}
 	}
 };
 
