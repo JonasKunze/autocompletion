@@ -9,6 +9,7 @@
 #define BUILDERNODE2_H_
 
 #include <sys/types.h>
+#include <iostream>
 #include <set>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ public:
 	}
 
 	inline u_int32_t getDeltaScore() const {
-		return parent != 0 ? score - parent->score : 0;
+		return parent != nullptr ? parent->score - score : 0xFFFFFFFF - score;
 	}
 
 	bool isLeafNode() {

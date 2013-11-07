@@ -71,7 +71,6 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		if (node->getParent() != lastParent) {
 			lastParent = node->getParent();
 			node->isLastSibbling = true;
-		} else {
 			if (node->getParent() != nullptr) {
 				node->getParent()->score = node->score;
 			}
@@ -79,7 +78,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		/*
 		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
 		 */
-		if (node->isRootNode() == 0) {
+		if (node->isRootNode()) {
 			node->score = 0;
 		}
 
@@ -92,9 +91,9 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 		memPointer -= nodeSize;
 
-		PackedNode::createNode(mem + memPointer, node->suffix.length(),
-				node->suffix.c_str(), node->isLastSibbling,
-				node->getDeltaScore(),
+		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
+				node->suffix.length(), node->suffix.c_str(),
+				node->isLastSibbling, node->getDeltaScore(),
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
 
@@ -312,9 +311,7 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 		} else {
 			std::cout << parent->suffix;
 		}
-		std::cout << " -- " << child->suffix << " : "
-				<< (child->children.size() > 0 ?
-						(*child->children.begin())->suffix : "") << " : "
-				<< child->getTrieLayer() << std::endl;
+		std::cout << " -- " << child->suffix << " : " << child->score
+				<< std::endl;
 	}
 }

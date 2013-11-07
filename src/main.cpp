@@ -80,8 +80,8 @@ void performanceTest() {
 	for (int i = 0; i < runs; i++) {
 		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
 		std::string randStr = std::string(&chars[pos], 6);
-		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
-				randStr, 10);
+		std::shared_ptr < SimpleSuggestions > suggestions =
+				trie->getSuggestions(randStr, 10);
 
 //		for (std::string str : suggestions->suggestedWords) {
 //			std::cout << str << std::endl;

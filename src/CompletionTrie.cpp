@@ -40,6 +40,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
 
 	int termPrefixPos = 0;
+	u_int32_t relativeScore = 0xFFFFFFFF;
 	std::vector<std::string> fittingLeafNodes;
 	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
 	std::vector<PackedNode*> v;
@@ -54,22 +55,22 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		return suggestions;
 	}
 
-	std::vector<NodeWithScoreStore> nodesByScore;
-	nodesByScore.push_back( { 0xFFFFFFFF, node, term });
+	std::vector<NodeWithScoreStore> nodesByParentScore;
+	nodesByParentScore.push_back( { 0xFFFFFFFF, node, term });
 
 	bool isFirstNode = true;
-	while (!nodesByScore.empty()) {
-		std::sort(nodesByScore.begin(), nodesByScore.end(),
+	while (!nodesByParentScore.empty()) {
+		std::sort(nodesByParentScore.begin(), nodesByParentScore.end(),
 				NodeWithScoreStoreComparator());
-		NodeWithScoreStore nodeWithScore = *nodesByScore.begin();
-		nodesByScore.erase(nodesByScore.begin());
+		NodeWithScoreStore nodeWithParentScore = *nodesByParentScore.begin();
+		nodesByParentScore.erase(nodesByParentScore.begin());
 
-		if (nodeWithScore.node->isLeafNode()) {
+		if (nodeWithParentScore.node->isLeafNode()) {
 			suggestions->addSuggestion(
-					nodeWithScore.prefix
-							+ std::string(nodeWithScore.node->getCharacters(),
-									nodeWithScore.node->charactersSize_),
-					nodeWithScore.score);
+					nodeWithParentScore.prefix
+							+ nodeWithParentScore.node->getString(),
+					nodeWithParentScore.score
+							- nodeWithParentScore.node->getDeltaScore());
 			if (suggestions->isFull()) {
 				return suggestions;
 			}
@@ -78,33 +79,23 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		/*
 		 * Push first child to priority queue
 		 */
-		if (nodeWithScore.node->firstChildOffsetSize_ != 0) {
-			PackedNode* child = getFirstChild(nodeWithScore.node);
-			nodesByScore.push_back(
-					{ nodeWithScore.score, child, nodeWithScore.prefix
-							+ nodeWithScore.node->getString() });
-
-//			nodesByScore.insert(
-//					std::make_pair(score - child->getDeltaScore(),
-//							std::make_pair(child,
-//									prefix
-//											+ std::string(node->getCharacters(),
-//													node->charactersSize_))));
+		if (nodeWithParentScore.node->firstChildOffsetSize_ != 0) {
+			PackedNode* child = getFirstChild(nodeWithParentScore.node);
+			nodesByParentScore.push_back(
+					{ nodeWithParentScore.score
+							- nodeWithParentScore.node->getDeltaScore(), child,
+							nodeWithParentScore.prefix
+									+ nodeWithParentScore.node->getString() });
 		}
 
 		/*
 		 * Push next sibling to priority queue
 		 */
 		if (!isFirstNode) {
-			PackedNode* sibling = getNextSibling(nodeWithScore.node);
+			PackedNode* sibling = getNextSibling(nodeWithParentScore.node);
 			if (sibling != nullptr) {
-				nodesByScore.push_back(
-						{ nodeWithScore.score - sibling->getDeltaScore(),
-								sibling, nodeWithScore.prefix });
-
-//				nodesByScore.insert(
-//						std::make_pair(score - sibling->getDeltaScore(),
-//								std::make_pair(sibling, prefix)));
+				nodesByParentScore.push_back( { nodeWithParentScore.score,
+						sibling, nodeWithParentScore.prefix });
 			}
 		} else {
 			isFirstNode = false;
@@ -243,9 +234,8 @@ void CompletionTrie::printNode(PackedNode* parent,
 					<< std::string(parent->getCharacters(),
 							parent->charactersSize_);
 		}
-		std::cout << " -- "
-				<< std::string(child->getCharacters(), child->charactersSize_)
-				<< std::endl;
+		std::cout << " -- " << child->getString() << "\t"
+				<< child->getDeltaScore() << std::endl;
 
 		if (child->isLastSibling_) {
 			break;
