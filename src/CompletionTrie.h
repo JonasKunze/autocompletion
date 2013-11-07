@@ -44,15 +44,18 @@ public:
 
 	void print();
 
+	u_int32_t getMemoryConsumption() const {
+		return memSize;
+	}
+
 private:
 	PackedNode* root;
-
-	char* mem;
 
 	/*
 	 * The main memory used to store the trie
 	 * TODO: Use a memory mapped file for persistency
 	 */
+	char* mem;
 	u_int32_t memSize;
 
 	/**

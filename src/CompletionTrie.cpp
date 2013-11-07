@@ -23,7 +23,7 @@ struct NodeWithScoreStore {
 struct NodeWithScoreStoreComparator {
 	bool operator()(const NodeWithScoreStore left,
 			const NodeWithScoreStore right) {
-		return left.score < right.score;
+		return left.score > right.score;
 	}
 };
 
@@ -47,7 +47,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	term = term.substr(0, termPrefixPos);
 
 	for (std::string s : fittingLeafNodes) {
-		suggestions->addSuggestion(s);
+		suggestions->addSuggestion(s, 0);
 	}
 
 	if (node == root || node == nullptr) {
@@ -59,8 +59,8 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 
 	bool isFirstNode = true;
 	while (!nodesByScore.empty()) {
-//		std::sort(nodesByScore.begin(), nodesByScore.end(),
-//				NodeWithScoreStoreComparator());
+		std::sort(nodesByScore.begin(), nodesByScore.end(),
+				NodeWithScoreStoreComparator());
 		NodeWithScoreStore nodeWithScore = *nodesByScore.begin();
 		nodesByScore.erase(nodesByScore.begin());
 
@@ -68,7 +68,8 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 			suggestions->addSuggestion(
 					nodeWithScore.prefix
 							+ std::string(nodeWithScore.node->getCharacters(),
-									nodeWithScore.node->charactersSize_));
+									nodeWithScore.node->charactersSize_),
+					nodeWithScore.score);
 			if (suggestions->isFull()) {
 				return suggestions;
 			}

@@ -44,7 +44,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-100000.tsv");
+			"data/wiki-1000000.tsv");
 //			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
@@ -61,24 +61,24 @@ void performanceTest() {
 	start = Utils::getCurrentMicroSeconds();
 	CompletionTrie* trie = builder.generateCompletionTrie();
 	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000. << " ms for creating packed trie" << std::endl;
+	std::cout << time / 1000. << " ms for creating packed trie with "
+			<< trie->getMemoryConsumption() << std::endl;
 
 //	trie->print();
 
 	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 			10);
 
-	for (std::string str : suggestions->suggestedWords) {
-		std::cout << str << std::endl;
+	for (auto sugg : suggestions->suggestedWords) {
+		std::cout << sugg.second << "\t" << sugg.first << std::endl;
 	}
 
-	const char* chars =
-			(char*) "'.-_+0123456789abcdefghijklmnopqrstuvwxyz'.-_+0123456789abcdefghijklmnopqrstuvwxyz";
+	const char* chars = (char*) "'.-_+01234";
 
 	start = Utils::getCurrentMicroSeconds();
 	int runs = 1000;
 	for (int i = 0; i < runs; i++) {
-		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 41;
+		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
 		std::string randStr = std::string(&chars[pos], 6);
 		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
 				randStr, 10);
@@ -115,22 +115,22 @@ void performanceTest() {
 }
 
 int main() {
-//	CompletionTrieBuilder builder;
-//	builder.addString("'melville", 56);
-//	builder.addString("'national'", 58);
-//	builder.addString("'neutral'", 55);
-//
-//	builder.print();
-//
-//	CompletionTrie* trie = builder.generateCompletionTrie();
-//
-//	trie->print();
-//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
-//			10);
-//
-//	for (std::string str : suggestions->suggestedWords) {
-//		std::cout << str << std::endl;
-//	}
+	CompletionTrieBuilder builder;
+	builder.addString("'melville", 56);
+	builder.addString("'national'", 58);
+	builder.addString("'neutral'", 55);
+
+	builder.print();
+
+	CompletionTrie* trie = builder.generateCompletionTrie();
+
+	trie->print();
+	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
+			10);
+
+	for (auto pair : suggestions->suggestedWords) {
+		std::cout << pair.first << "\t" << pair.second << std::endl;
+	}
 
 //
 //	builder.addString("'Outstanding", 175);
@@ -176,7 +176,7 @@ int main() {
 //		std::cout << str << std::endl;
 //	}
 
-	performanceTest();
+//	performanceTest();
 
 	return 0;
 }
