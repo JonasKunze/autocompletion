@@ -115,22 +115,23 @@ void performanceTest() {
 }
 
 int main() {
-//	CompletionTrieBuilder builder;
-//	builder.addString("'melville", 56);
-//	builder.addString("'national'", 58);
-//	builder.addString("'neutral'", 55);
-//
-//	builder.print();
-//
-//	CompletionTrie* trie = builder.generateCompletionTrie();
-//
-//	trie->print();
-//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
-//			10);
-//
-//	for (auto pair : suggestions->suggestedWords) {
-//		std::cout << pair.first << "\t" << pair.second << std::endl;
-//	}
+	CompletionTrieBuilder builder;
+	builder.addString("'melville", 56);
+	builder.addString("'national'", 58);
+	builder.addString("'neutral'", 55);
+	builder.addString("'asdf'", 55);
+
+	builder.print();
+
+	CompletionTrie* trie = builder.generateCompletionTrie();
+
+	trie->print();
+	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
+			10);
+
+	for (auto pair : suggestions->suggestedWords) {
+		std::cout << pair.first << "\t" << pair.second << std::endl;
+	}
 
 //
 //	builder.addString("'Outstanding", 175);
@@ -175,7 +176,7 @@ int main() {
 //		std::cout << pair.first << "\t" << pair.second << std::endl;
 //	}
 
-	performanceTest();
+//	performanceTest();
 
 	return 0;
 }
