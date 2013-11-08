@@ -40,7 +40,6 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
 
 	int termPrefixPos = 0;
-	u_int32_t relativeScore = 0xFFFFFFFF;
 	std::vector<std::string> fittingLeafNodes;
 	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
 	std::vector<PackedNode*> v;

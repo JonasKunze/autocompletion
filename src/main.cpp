@@ -44,7 +44,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-1000000.tsv");
+			"data/wiki-10.tsv");
 //			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
@@ -64,11 +64,13 @@ void performanceTest() {
 	std::cout << time / 1000. << " ms for creating packed trie with "
 			<< trie->getMemoryConsumption() << std::endl;
 
-//	trie->print();
+	trie->print();
 
 	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 			10);
 
+	std::cout << "Found " << suggestions->suggestedWords.size()
+			<< " suggestions:" << std::endl;
 	for (auto sugg : suggestions->suggestedWords) {
 		std::cout << sugg.second << "\t" << sugg.first << std::endl;
 	}
@@ -80,8 +82,8 @@ void performanceTest() {
 	for (int i = 0; i < runs; i++) {
 		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
 		std::string randStr = std::string(&chars[pos], 6);
-		std::shared_ptr < SimpleSuggestions > suggestions =
-				trie->getSuggestions(randStr, 10);
+		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
+				randStr, 10);
 
 //		for (std::string str : suggestions->suggestedWords) {
 //			std::cout << str << std::endl;
@@ -91,46 +93,45 @@ void performanceTest() {
 	std::cout << time / (float) runs << " us for finding suggestions"
 			<< std::endl;
 
-	//	do {
-//		std::string str;
-//		std::cout << "Please enter search string: ";
-//		std::cin >> str;
-//
-//		if (str == "\\q") {
-//			return;
-//		}
-//
-//		start = Utils::getCurrentMicroSeconds();
-//		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
-//				str, 10);
-//		time = Utils::getCurrentMicroSeconds() - start;
-//		std::cout << time << " us for finding suggestions" << std::endl;
-//
-//		for (std::string str : suggestions->suggestedWords) {
-//			std::cout << str << std::endl;
-//		}
-//
-//	} while (true);
+	do {
+		std::string str;
+		std::cout << "Please enter search string: ";
+		std::cin >> str;
+
+		if (str == "\\q") {
+			return;
+		}
+
+		start = Utils::getCurrentMicroSeconds();
+		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
+				str, 10);
+		time = Utils::getCurrentMicroSeconds() - start;
+		std::cout << time << " us for finding suggestions" << std::endl;
+
+		for (auto pair : suggestions->suggestedWords) {
+			std::cout << pair.first << "\t" << pair.second << std::endl;
+		}
+	} while (true);
 
 }
 
 int main() {
-	CompletionTrieBuilder builder;
-	builder.addString("'melville", 56);
-	builder.addString("'national'", 58);
-	builder.addString("'neutral'", 55);
-
-	builder.print();
-
-	CompletionTrie* trie = builder.generateCompletionTrie();
-
-	trie->print();
-	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
-			10);
-
-	for (auto pair : suggestions->suggestedWords) {
-		std::cout << pair.first << "\t" << pair.second << std::endl;
-	}
+//	CompletionTrieBuilder builder;
+//	builder.addString("'melville", 56);
+//	builder.addString("'national'", 58);
+//	builder.addString("'neutral'", 55);
+//
+//	builder.print();
+//
+//	CompletionTrie* trie = builder.generateCompletionTrie();
+//
+//	trie->print();
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
+//			10);
+//
+//	for (auto pair : suggestions->suggestedWords) {
+//		std::cout << pair.first << "\t" << pair.second << std::endl;
+//	}
 
 //
 //	builder.addString("'Outstanding", 175);
@@ -164,19 +165,18 @@ int main() {
 //	builder.addString("abc", 1236);
 //	builder.addString("abe", 1235);
 //	builder.addString("ade", 1236);
-//
+
 //	CompletionTrie* trie = builder.generateCompletionTrie();
 //	builder.print();
 //
-//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'Ou",
+//	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 //			10);
 //
-//	std::cout << "!!" << std::endl;
-//	for (std::string str : suggestions->suggestedWords) {
-//		std::cout << str << std::endl;
+//	for (auto pair : suggestions->suggestedWords) {
+//		std::cout << pair.first << "\t" << pair.second << std::endl;
 //	}
 
-//	performanceTest();
+	performanceTest();
 
 	return 0;
 }

@@ -10,8 +10,9 @@
 
 #include <sys/types.h>
 #include <cstring>
-#include <iostream>
 #include <string>
+
+#include "Utils.h"
 
 inline u_int8_t getNumberOfBytesToStore(u_int32_t i) {
 	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 :
@@ -103,8 +104,11 @@ struct PackedNode {
 		 * Cast the storage to an array directly behind the characters and use a bitmap to
 		 * only return as many bytes as are used for the delta score
 		 */
-		return *(reinterpret_cast<u_int32_t*>(characters_deltaScore_firstChildOffset_
-				+ charactersSize_)) & bitmaskFor2bValues[deltaScoreSize_];
+		return Utils::bytesToUInt32(
+				characters_deltaScore_firstChildOffset_ + charactersSize_)
+				& bitmaskFor2bValues[deltaScoreSize_];
+//		return *(reinterpret_cast<u_int32_t*>(characters_deltaScore_firstChildOffset_
+//				+ charactersSize_)) & bitmaskFor2bValues[deltaScoreSize_];
 	}
 
 	/**
@@ -115,9 +119,11 @@ struct PackedNode {
 		 * Cast the storage to an array at the position behind the delta score and use a bitmap to
 		 * only return as many bytes as are used for the first child offset
 		 */
-		return *(reinterpret_cast<int*>(characters_deltaScore_firstChildOffset_
-				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_]))
-				& bitmaskFor2bValues[firstChildOffsetSize_];
+		return Utils::bytesToUInt32(characters_deltaScore_firstChildOffset_
+				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_])& bitmaskFor2bValues[firstChildOffsetSize_];
+//		return *(reinterpret_cast<u_int32_t*>(characters_deltaScore_firstChildOffset_
+//				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_]))
+//				& bitmaskFor2bValues[firstChildOffsetSize_];
 	}
 
 	/**

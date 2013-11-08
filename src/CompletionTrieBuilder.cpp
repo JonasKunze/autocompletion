@@ -91,9 +91,9 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 		memPointer -= nodeSize;
 
-		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
-				node->suffix.length(), node->suffix.c_str(),
-				node->isLastSibbling, node->getDeltaScore(),
+		PackedNode::createNode(mem + memPointer, node->suffix.length(),
+				node->suffix.c_str(), node->isLastSibbling,
+				node->getDeltaScore(),
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
 
@@ -214,7 +214,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	BuilderNode* parent = root;
 
 	BuilderNode* nextParent = nullptr;
-	short nextParentsLastFitPos = -1;
+	int nextParentsLastFitPos = -1;
 
 	restart: for (BuilderNode* node : parent->children) {
 		short lastFitPos = Utils::findFirstNonMatchingCharacter(
@@ -261,10 +261,10 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
 		if (remainingPrefix.size() == 0
-				|| nextParentsLastFitPos + 1 != nextParent->suffix.length()) {
+				|| static_cast<u_int32_t>(nextParentsLastFitPos + 1)
+						!= nextParent->suffix.length()) {
 			return resultLocus;
 		}
-
 		parent = nextParent;
 		nextParent = nullptr;
 		goto restart;

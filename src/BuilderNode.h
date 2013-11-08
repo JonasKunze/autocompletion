@@ -42,8 +42,8 @@ public:
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			parent(nullptr), isLastSibbling(false), score(0), firstChildPointer(
-					0), trieLayer(0) {
+			parent(nullptr), isLastSibbling(false), score(0), trieLayer(0), firstChildPointer(
+					0) {
 	}
 	virtual ~BuilderNode();
 

@@ -25,8 +25,9 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
 		const std::string _suffix) :
 		parent(_parent), isLastSibbling(false), score(_deltaScore), suffix(
-				_suffix), firstChildPointer(0), trieLayer(
-				parent != nullptr ? parent->trieLayer + 1 : 0) {
+				_suffix), trieLayer(
+				parent != nullptr ? parent->trieLayer + 1 : 0), firstChildPointer(
+				0) {
 	allNodes.push_back(this);
 }
 

@@ -40,5 +40,17 @@ public:
 
 		return ffsl(mask) / 8;
 	}
+
+	/**
+	 * The following will lead to a "dereferencing type-punned pointer will break 
+	 * strict-aliasing rules" message:
+	 * *(reinterpret_cast<u_int32_t*>(bytes)
+	 * 
+	 * Use this method instead
+	 */
+	static inline u_int32_t bytesToUInt32(const char* data) {
+		return ((u_int32_t) data[0] | ((u_int32_t) data[1] << 8)
+				| ((u_int32_t) data[2] << 16) | ((u_int32_t) data[3] << 24));
+	}
 };
 #endif /* UTILS_H_ */
