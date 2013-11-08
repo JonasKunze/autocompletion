@@ -119,8 +119,10 @@ struct PackedNode {
 		 * Cast the storage to an array at the position behind the delta score and use a bitmap to
 		 * only return as many bytes as are used for the first child offset
 		 */
-		return Utils::bytesToUInt32(characters_deltaScore_firstChildOffset_
-				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_])& bitmaskFor2bValues[firstChildOffsetSize_];
+		return Utils::bytesToUInt32(
+				characters_deltaScore_firstChildOffset_ + charactersSize_
+						+ numberOfBytesBy2bValue[deltaScoreSize_])
+				& bitmaskFor2bValues[firstChildOffsetSize_];
 //		return *(reinterpret_cast<u_int32_t*>(characters_deltaScore_firstChildOffset_
 //				+ charactersSize_ + numberOfBytesBy2bValue[deltaScoreSize_]))
 //				& bitmaskFor2bValues[firstChildOffsetSize_];

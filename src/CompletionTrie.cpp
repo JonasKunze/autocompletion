@@ -183,13 +183,12 @@ void CompletionTrie::print() {
 		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
 		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
 				+ node->getFirstChildOffset());
-		std::cout << std::string(node->getCharacters(), node->charactersSize_)
-				<< "\"\t"
+		std::cout << node->getString() << "\t"
 
-				<< (int) node->getSize() << "\t"
-				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t\""
-				<< firstChild->getString() << "\"" << "\t"
-				<< node->isLastSibling_ << "\t" << layer << std::endl;
+		<< (int) node->getSize() << "\t"
+				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t"
+				<< "\t" << firstChild->getString() << "\t" << layer
+				<< std::endl;
 
 		if (node->isLastSibling_) {
 			layer++;

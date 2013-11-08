@@ -93,26 +93,25 @@ void performanceTest() {
 	std::cout << time / (float) runs << " us for finding suggestions"
 			<< std::endl;
 
-	do {
-		std::string str;
-		std::cout << "Please enter search string: ";
-		std::cin >> str;
-
-		if (str == "\\q") {
-			return;
-		}
-
-		start = Utils::getCurrentMicroSeconds();
-		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
-				str, 10);
-		time = Utils::getCurrentMicroSeconds() - start;
-		std::cout << time << " us for finding suggestions" << std::endl;
-
-		for (auto pair : suggestions->suggestedWords) {
-			std::cout << pair.first << "\t" << pair.second << std::endl;
-		}
-	} while (true);
-
+//	do {
+//		std::string str;
+//		std::cout << "Please enter search string: ";
+//		std::cin >> str;
+//
+//		if (str == "\\q") {
+//			return;
+//		}
+//
+//		start = Utils::getCurrentMicroSeconds();
+//		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
+//				str, 10);
+//		time = Utils::getCurrentMicroSeconds() - start;
+//		std::cout << time << " us for finding suggestions" << std::endl;
+//
+//		for (auto pair : suggestions->suggestedWords) {
+//			std::cout << pair.first << "\t" << pair.second << std::endl;
+//		}
+//	} while (true);
 }
 
 int main() {
