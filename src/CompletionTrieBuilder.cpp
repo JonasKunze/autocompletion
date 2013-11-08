@@ -29,9 +29,9 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 			if (left->score == right->score) {
 				return left->suffix < right->suffix;
 			}
-			return left->score < right->score;
+			return left->score > right->score;
 		}
-		return left->getParent()->score < right->getParent()->score;
+		return left->getParent()->score > right->getParent()->score;
 
 	}
 	return left->getTrieLayer() < right->getTrieLayer();
@@ -282,12 +282,11 @@ void CompletionTrieBuilder::print() {
 
 	std::cout << "}" << std::endl;
 
-//	std::cout << "================" << std::endl;
-//	for (BuilderNode* node : BuilderNode::allNodes) {
-//		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-//				<< node->isLastSibbling << "!!" << node->children.size()
-//				<< std::endl;
-//	}
+	std::cout << "================" << std::endl;
+	for (BuilderNode* node : BuilderNode::allNodes) {
+		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
+				<< node->score << std::endl;
+	}
 }
 
 /**

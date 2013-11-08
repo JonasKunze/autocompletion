@@ -14,16 +14,17 @@
 #include "Suggestion.h"
 #include "Utils.h"
 
-struct NodeWithScoreStore {
-	u_int32_t score;
+struct NodeWithParentScoreStore {
+	u_int32_t parentScore;
 	PackedNode* node;
 	std::string prefix;
 };
 
 struct NodeWithScoreStoreComparator {
-	bool operator()(const NodeWithScoreStore left,
-			const NodeWithScoreStore right) {
-		return left.score > right.score;
+	bool operator()(const NodeWithParentScoreStore left,
+			const NodeWithParentScoreStore right) {
+		return left.parentScore - left.node->getDeltaScore()
+				> right.parentScore - right.node->getDeltaScore();
 	}
 };
 
@@ -54,21 +55,22 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		return suggestions;
 	}
 
-	std::vector<NodeWithScoreStore> nodesByParentScore;
+	std::vector<NodeWithParentScoreStore> nodesByParentScore;
 	nodesByParentScore.push_back( { 0xFFFFFFFF, node, term });
 
 	bool isFirstNode = true;
 	while (!nodesByParentScore.empty()) {
 		std::sort(nodesByParentScore.begin(), nodesByParentScore.end(),
 				NodeWithScoreStoreComparator());
-		NodeWithScoreStore nodeWithParentScore = *nodesByParentScore.begin();
-		nodesByParentScore.erase(nodesByParentScore.begin());
+		NodeWithParentScoreStore nodeWithParentScore =
+				*nodesByParentScore.rbegin();
+		nodesByParentScore.pop_back();
 
 		if (nodeWithParentScore.node->isLeafNode()) {
 			suggestions->addSuggestion(
 					nodeWithParentScore.prefix
 							+ nodeWithParentScore.node->getString(),
-					nodeWithParentScore.score
+					nodeWithParentScore.parentScore
 							- nodeWithParentScore.node->getDeltaScore());
 			if (suggestions->isFull()) {
 				return suggestions;
@@ -81,7 +83,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		if (nodeWithParentScore.node->firstChildOffsetSize_ != 0) {
 			PackedNode* child = getFirstChild(nodeWithParentScore.node);
 			nodesByParentScore.push_back(
-					{ nodeWithParentScore.score
+					{ nodeWithParentScore.parentScore
 							- nodeWithParentScore.node->getDeltaScore(), child,
 							nodeWithParentScore.prefix
 									+ nodeWithParentScore.node->getString() });
@@ -93,7 +95,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		if (!isFirstNode) {
 			PackedNode* sibling = getNextSibling(nodeWithParentScore.node);
 			if (sibling != nullptr) {
-				nodesByParentScore.push_back( { nodeWithParentScore.score,
+				nodesByParentScore.push_back( { nodeWithParentScore.parentScore,
 						sibling, nodeWithParentScore.prefix });
 			}
 		} else {

@@ -44,7 +44,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-10.tsv");
+			"data/wiki-1000.tsv");
 //			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
@@ -82,8 +82,8 @@ void performanceTest() {
 	for (int i = 0; i < runs; i++) {
 		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
 		std::string randStr = std::string(&chars[pos], 6);
-		std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions(
-				randStr, 10);
+		std::shared_ptr < SimpleSuggestions > suggestions =
+				trie->getSuggestions(randStr, 10);
 
 //		for (std::string str : suggestions->suggestedWords) {
 //			std::cout << str << std::endl;
@@ -132,7 +132,6 @@ int main() {
 	for (auto pair : suggestions->suggestedWords) {
 		std::cout << pair.first << "\t" << pair.second << std::endl;
 	}
-
 //
 //	builder.addString("'Outstanding", 175);
 //	builder.addString("'Operation", 141);
