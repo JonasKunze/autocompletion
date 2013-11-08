@@ -163,8 +163,9 @@ struct PackedNode {
 	static u_int8_t calculateSize(const u_int8_t characterSize,
 			const u_int32_t deltaScore, const u_int32_t firstChildOffset) {
 		return sizeof(PackedNode) + characterSize
-				+ getNumberOfBytesToStore(deltaScore)
-				+ getNumberOfBytesToStore(firstChildOffset);
+				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(deltaScore)]
+				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(
+						firstChildOffset)];
 	}
 
 	/**

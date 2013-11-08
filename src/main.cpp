@@ -64,7 +64,7 @@ void performanceTest() {
 	std::cout << time / 1000. << " ms for creating packed trie with "
 			<< trie->getMemoryConsumption() << std::endl;
 
-	trie->print();
+//	trie->print();
 
 	std::shared_ptr<SimpleSuggestions> suggestions = trie->getSuggestions("'",
 			10);
