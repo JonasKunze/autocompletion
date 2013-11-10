@@ -134,12 +134,16 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 			if (currentNode->isLeafNode()) {
 				/*
 				 * The term is stored in the trie. One suggestion should be the term as such (return_fittingLeafNode)
-				 * but we have to carry on searching for fitting nodes...
+				 * but we might have to carry on searching for fitting nodes...
 				 */
-				node_ptr += currentNode->getSize();
 				return_fittingLeafNodes.push_back(
 						{ currentNode->getDeltaScore(), currentNode,
 								term.substr(0, charPos) });
+
+				if (currentNode->isLastSibling_) {
+					break;
+				}
+				node_ptr += currentNode->getSize();
 				continue;
 			}
 
@@ -155,15 +159,13 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 			/*
 			 * Move to the next sibling
 			 */
+			if (currentNode->isLastSibling_) {
+				break;
+			}
 			node_ptr += currentNode->getSize();
 		}
 
-		/*
-		 * Stop if we found the whole term or we did not find
-		 */
-	} while ((nodeFits && charPos <= term.length())
-			|| ((charPos < term.length() || return_fittingLeafNodes.size() == 0)
-					&& !currentNode->isLastSibling_));
+	} while (charPos < term.length());
 
 	/*
 	 * Remove the lastFittingNode from the return_fittingLeafNode as it will be returned directly

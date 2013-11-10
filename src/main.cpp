@@ -48,9 +48,9 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-//			"data/wiki-1000000.tsv");
+			"data/wiki-1000000.tsv");
 //			"data/all.1gs");
-			"data/test.tsv");
+//			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for reading file" << std::endl;
 
@@ -126,55 +126,55 @@ void performanceTest() {
 }
 
 int main() {
-	CompletionTrieBuilder builder;
-	builder.addString("a", 15078);
-	builder.addString("a", 13132);
+//	CompletionTrieBuilder builder;
+//	builder.addString("a", 15078);
+//	builder.addString("a", 13132);
+//
+//////
+//////	builder.addString("'Outstanding", 175);
+//////	builder.addString("'Operation", 141);
+//////	builder.addString("'Open", 92);
+//////	builder.addString("'", 92);
+//////	builder.print();
+//////
+//////	builder.addString("abcdefg", 1235);
+//////	builder.addString("a1234567b	", 1236);
+//////	builder.addString("ab", 1236);
+//////
+//////	builder.addString("abcdefgh", 1235);
+//////	builder.addString("abcdefgh", 1236);
+//////
+//////	builder.addString("abc", 1235);
+//////	builder.addString("abc", 1236);
+//////
+//////	builder.addString("a", 1235);
+//////	builder.addString("a", 1236);
+//////
+//////	builder.addString("abcd", 1235);
+//////	builder.addString("a", 1236);
+//////	builder.addString("ae", 1236);
+//////	builder.addString("afcd", 1235);
+//////
+//////	builder.addString("a", 1235);
+//////	builder.addString("abc", 1236);
+//////	builder.addString("ade", 1236);
+//////
+//////	builder.addString("abc", 1236);
+//////	builder.addString("abe", 1235);
+//////	builder.addString("ade", 1236);
+//
+//	CompletionTrie* trie = builder.generateCompletionTrie();
+//	builder.print();
+//
+//	trie->print();
+//	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("a", 10);
+//
+//	for (Suggestion sugg : suggestions->suggestedWords) {
+//		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
+//				<< sugg.image << std::endl;
+//	}
 
-////
-////	builder.addString("'Outstanding", 175);
-////	builder.addString("'Operation", 141);
-////	builder.addString("'Open", 92);
-////	builder.addString("'", 92);
-////	builder.print();
-////
-////	builder.addString("abcdefg", 1235);
-////	builder.addString("a1234567b	", 1236);
-////	builder.addString("ab", 1236);
-////
-////	builder.addString("abcdefgh", 1235);
-////	builder.addString("abcdefgh", 1236);
-////
-////	builder.addString("abc", 1235);
-////	builder.addString("abc", 1236);
-////
-////	builder.addString("a", 1235);
-////	builder.addString("a", 1236);
-////
-////	builder.addString("abcd", 1235);
-////	builder.addString("a", 1236);
-////	builder.addString("ae", 1236);
-////	builder.addString("afcd", 1235);
-////
-////	builder.addString("a", 1235);
-////	builder.addString("abc", 1236);
-////	builder.addString("ade", 1236);
-////
-////	builder.addString("abc", 1236);
-////	builder.addString("abe", 1235);
-////	builder.addString("ade", 1236);
-
-	CompletionTrie* trie = builder.generateCompletionTrie();
-	builder.print();
-
-	trie->print();
-	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("a", 10);
-
-	for (Suggestion sugg : suggestions->suggestedWords) {
-		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-				<< sugg.image << std::endl;
-	}
-
-//	performanceTest();
+	performanceTest();
 
 	return 0;
 }
