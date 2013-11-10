@@ -34,6 +34,9 @@ public:
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 	u_int16_t trieLayer;
 
+	std::string URL;
+	std::string image;
+
 	/*
 	 * The absolute pointer to the firstChild. Use this while writing this node to calculate the offset
 	 */

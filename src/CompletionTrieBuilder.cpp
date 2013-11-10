@@ -13,10 +13,12 @@
 #include <deque>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <vector>
 
 #include "CompletionTrie.h"
 #include "PackedNode.h"
+#include "SuggestionStore.h"
 #include "Utils.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
@@ -44,7 +46,8 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 }
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		root(new BuilderNode(nullptr, 0xFFFFFFFF, "")) {
+		root(new BuilderNode(nullptr, 0xFFFFFFFF, "")), suggestionStore(
+				std::make_shared<SuggestionStore>()) {
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {
@@ -115,21 +118,14 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	char* finalMem = new char[memSize - memPointer];
 	memcpy(finalMem, mem + memPointer, memSize - memPointer);
 	delete[] mem;
-	return new CompletionTrie(finalMem, memSize - memPointer);
+	return new CompletionTrie(finalMem, memSize - memPointer, suggestionStore);
 }
 
-void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
+void CompletionTrieBuilder::addString(const std::string str, u_int32_t score) {
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
-	bool termAlreadyExists = false;
-
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
-			charsRemainingForLastNode, termAlreadyExists);
-
-	if (termAlreadyExists) {
-		std::cerr << "Term " << str << " already exists in trie!" << std::endl;
-		return;
-	}
+			charsRemainingForLastNode);
 
 	BuilderNode* parent = locus.top();
 
@@ -167,6 +163,9 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score) {
 			splitNode(parent, parent->suffix.length() - 1);
 			numberOfCharsFound--;
 		} else {
+			/*
+			 * parent is a non splittable leaf node -> take its parent instead
+			 */
 			numberOfCharsFound -= parent->suffix.length();
 			locus.pop();
 			parent = locus.top();
@@ -209,8 +208,7 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 
 std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		const std::string term, unsigned short& numberOfCharsFound,
-		unsigned char& charsRemainingForLastNode,
-		bool& return_termAlreadyExists) {
+		unsigned char& charsRemainingForLastNode) {
 	std::stack<BuilderNode*> resultLocus;
 
 	resultLocus.push(root);
@@ -243,7 +241,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 			 */
 			if (node->suffix.size() == 1 && node->isLeafNode()) {
 				if (remainingPrefix.length() == 1) {
-					return_termAlreadyExists = true;
+					numberOfCharsFound = 1;
 					resultLocus.push(node);
 					return resultLocus;
 				}

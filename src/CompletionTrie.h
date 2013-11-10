@@ -10,33 +10,40 @@
 
 #include <sys/types.h>
 #include <deque>
-#include <map>
+//#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "PackedNode.h"
 
-struct SimpleSuggestions;
+class SuggestionStore;
+
+struct SuggestionList;
 
 class PackedNode;
 
-struct NodeWithParentScoreStore {
-	u_int32_t parentScore;
+/*
+ * This struct is used for the suggestion retrieval.
+ * It stores a node with a score relative to the best fitting node of the
+ * searched term and the prefix of the node to reconstruct the whole term
+ */
+struct NodeWithRelativeScoreStore {
+	u_int32_t relativeScoreOfParent;
 	PackedNode* node;
 	std::string prefix;
 	std::string getString() {
 		return prefix + node->getString();
 	}
 
-	u_int32_t getScore() {
-		return parentScore - node->getDeltaScore();
+	u_int32_t getRelativeScore() {
+		return relativeScoreOfParent - node->getDeltaScore();
 	}
 };
 
 class CompletionTrie {
 public:
-	CompletionTrie(char* mem, u_int32_t _memSize);
+	CompletionTrie(char* mem, u_int32_t _memSize, std::shared_ptr<SuggestionStore> _suggestionStore);
 	virtual ~CompletionTrie();
 
 	void addTerm(const std::string term, const u_int32_t score);
@@ -50,9 +57,9 @@ public:
 	 *  Node
 	 */
 	PackedNode* findBestFitting(const std::string term, int& return_prefixPos,
-			std::vector<NodeWithParentScoreStore>& return_fittingLeafNodes);
+			std::vector<NodeWithRelativeScoreStore>& return_fittingLeafNodes);
 
-	std::shared_ptr<SimpleSuggestions> getSuggestions(std::string prefix,
+	std::shared_ptr<SuggestionList> getSuggestions(std::string prefix,
 			const int k);
 
 	void print();
@@ -68,8 +75,10 @@ private:
 	 * The main memory used to store the trie
 	 * TODO: Use a memory mapped file for persistency
 	 */
-	char* mem;
-	u_int32_t memSize;
+	const char* mem;
+	const u_int32_t memSize;
+
+	std::shared_ptr<SuggestionStore> suggestionStore;
 
 	/**
 	 * Concatenates the characters of all nodes in the given locus

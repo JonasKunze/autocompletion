@@ -8,18 +8,22 @@
 #ifndef COMPLETIONTRIEBUILDER_H_
 #define COMPLETIONTRIEBUILDER_H_
 
+#include <sys/types.h>
+#include <deque>
+#include <memory>
+//#include <set>
 #include <stack>
-#include <set>
 #include <string>
 
 #include "BuilderNode.h"
+
+class SuggestionStore;
 
 class CompletionTrie;
 
 struct BuilderNodeLayerComparator {
 	bool operator()(const BuilderNode* left, const BuilderNode* right);
 };
-
 
 class CompletionTrieBuilder {
 public:
@@ -33,6 +37,8 @@ public:
 private:
 	BuilderNode* root;
 
+	std::shared_ptr<SuggestionStore> suggestionStore;
+
 	/**
 	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned
 	 * will never be leaf nodes with only one character
@@ -45,8 +51,7 @@ private:
 	 */
 	std::stack<BuilderNode*> findLocus(std::string term,
 			unsigned short& numberOfCharsFound,
-			unsigned char& charsRemainingForLastNode,
-			bool& return_termAlreadyExists);
+			unsigned char& charsRemainingForLastNode);
 	void splitNode(BuilderNode* node, unsigned char splitPos);
 
 };

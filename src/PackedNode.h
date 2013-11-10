@@ -155,7 +155,7 @@ struct PackedNode {
 	u_int8_t getSize() const {
 		return sizeof(PackedNode) + charactersSize_
 				+ numberOfBytesBy2bValue[deltaScoreSize_]
-				+ numberOfBytesBy2bValue[firstChildOffsetSize_];
+				+ numberOfBytesBy2bValue[firstChildOffsetSize_] + 0;
 	}
 
 	bool isLeafNode() {
@@ -167,14 +167,14 @@ struct PackedNode {
 		return sizeof(PackedNode) + characterSize
 				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(deltaScore)]
 				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(
-						firstChildOffset)];
+						firstChildOffset)] + 0;
 	}
 
 	/**
 	 * Returns the maximum size a PackedNode could take
 	 */
 	static u_int32_t getMaxSize() {
-		return sizeof(PackedNode) + 7 + 4 + 3;
+		return sizeof(PackedNode) + 7 + 4 + 3 + 0;
 	}
 
 	/**
