@@ -29,6 +29,7 @@ private:
 public:
 	bool isLastSibbling;
 	u_int32_t score;
+	u_int32_t parentScore;
 	std::string suffix;
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 	u_int16_t trieLayer;
@@ -42,8 +43,8 @@ public:
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			parent(nullptr), isLastSibbling(false), score(0), trieLayer(0), firstChildPointer(
-					0) {
+			parent(nullptr), isLastSibbling(false), score(0), parentScore(0), trieLayer(
+					0), firstChildPointer(0) {
 	}
 	virtual ~BuilderNode();
 
@@ -58,20 +59,28 @@ public:
 		return parent != nullptr ? parent->score - score : 0xFFFFFFFF - score;
 	}
 
-	bool isLeafNode() {
+	inline bool isLeafNode() {
 		return children.size() == 0;
 	}
 
-	u_int16_t getTrieLayer() const {
+	inline u_int16_t getTrieLayer() const {
 		return trieLayer;
 	}
 
-	bool isRootNode() const {
+	inline bool isRootNode() const {
 		return parent == nullptr;
 	}
 
-	BuilderNode* getParent() const {
+	inline BuilderNode* getParent() const {
 		return parent;
+	}
+
+	/**
+	 * This is called very often therefore parentScore is cached
+	 */
+	inline u_int32_t getParentScore() const {
+		return parentScore;
+//		return parent == nullptr ? 0xFFFFFFFF : parent->score;
 	}
 
 	void setParent(BuilderNode* parent) {

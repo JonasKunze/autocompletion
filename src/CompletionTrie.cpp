@@ -14,17 +14,11 @@
 #include "Suggestion.h"
 #include "Utils.h"
 
-struct NodeWithParentScoreStore {
-	u_int32_t parentScore;
-	PackedNode* node;
-	std::string prefix;
-};
-
 struct NodeWithScoreStoreComparator {
 	bool operator()(const NodeWithParentScoreStore left,
 			const NodeWithParentScoreStore right) {
 		return left.parentScore - left.node->getDeltaScore()
-				> right.parentScore - right.node->getDeltaScore();
+				< right.parentScore - right.node->getDeltaScore();
 	}
 };
 
@@ -38,17 +32,17 @@ CompletionTrie::~CompletionTrie() {
 
 std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		std::string term, const int k) {
-	std::shared_ptr<SimpleSuggestions> suggestions(new SimpleSuggestions(k));
+	auto suggestions = std::make_shared<SimpleSuggestions>(k);
 
 	int termPrefixPos = 0;
-	std::vector<std::string> fittingLeafNodes;
+	std::vector<NodeWithParentScoreStore> fittingLeafNodes;
 	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
 	std::vector<PackedNode*> v;
 
 	term = term.substr(0, termPrefixPos);
 
-	for (std::string s : fittingLeafNodes) {
-		suggestions->addSuggestion(s, 0);
+	for (NodeWithParentScoreStore n : fittingLeafNodes) {
+		suggestions->addSuggestion(n.getString(), n.getScore());
 	}
 
 	if (node == root || node == nullptr) {
@@ -62,16 +56,14 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 	while (!nodesByParentScore.empty()) {
 		std::sort(nodesByParentScore.begin(), nodesByParentScore.end(),
 				NodeWithScoreStoreComparator());
+
 		NodeWithParentScoreStore nodeWithParentScore =
 				*nodesByParentScore.rbegin();
 		nodesByParentScore.pop_back();
 
 		if (nodeWithParentScore.node->isLeafNode()) {
-			suggestions->addSuggestion(
-					nodeWithParentScore.prefix
-							+ nodeWithParentScore.node->getString(),
-					nodeWithParentScore.parentScore
-							- nodeWithParentScore.node->getDeltaScore());
+			suggestions->addSuggestion(nodeWithParentScore.getString(),
+					nodeWithParentScore.getScore());
 			if (suggestions->isFull()) {
 				return suggestions;
 			}
@@ -82,11 +74,8 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 		 */
 		if (nodeWithParentScore.node->firstChildOffsetSize_ != 0) {
 			PackedNode* child = getFirstChild(nodeWithParentScore.node);
-			nodesByParentScore.push_back(
-					{ nodeWithParentScore.parentScore
-							- nodeWithParentScore.node->getDeltaScore(), child,
-							nodeWithParentScore.prefix
-									+ nodeWithParentScore.node->getString() });
+			nodesByParentScore.push_back( { nodeWithParentScore.getScore(),
+					child, nodeWithParentScore.getString() });
 		}
 
 		/*
@@ -108,7 +97,7 @@ std::shared_ptr<SimpleSuggestions> CompletionTrie::getSuggestions(
 
 PackedNode* CompletionTrie::findBestFitting(const std::string term,
 		int& return_prefixPos,
-		std::vector<std::string>& return_fittingLeafNodeStrings) {
+		std::vector<NodeWithParentScoreStore>& return_fittingLeafNodes) {
 
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
@@ -141,8 +130,9 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 				 * but we have to carry on searching for fitting nodes...
 				 */
 				node_ptr += currentNode->getSize();
-				return_fittingLeafNodeStrings.push_back(
-						term.substr(0, charPos + currentNode->charactersSize_));
+				return_fittingLeafNodes.push_back(
+						{ currentNode->getDeltaScore(), currentNode,
+								term.substr(0, charPos) });
 				continue;
 			}
 
@@ -162,16 +152,16 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 		}
 
 	} while ((nodeFits && charPos <= term.length())
-			|| ((charPos < term.length()
-					|| return_fittingLeafNodeStrings.size() == 0)
+			|| ((charPos < term.length() || return_fittingLeafNodes.size() == 0)
 					&& !currentNode->isLastSibling_));
 
-	if (lastFittingNode != nullptr && !return_fittingLeafNodeStrings.empty()
+	/*
+	 * Remove the lastFittingNode from the return_fittingLeafNode as it will be returned directly
+	 */
+	if (lastFittingNode != nullptr && !return_fittingLeafNodes.empty()
 			&& term.substr(0, charPos) + lastFittingNode->getString()
-					== return_fittingLeafNodeStrings[return_fittingLeafNodeStrings.size()
-							- 1]) {
-		return_fittingLeafNodeStrings.erase(
-				return_fittingLeafNodeStrings.end());
+					== (return_fittingLeafNodes.back()).getString()) {
+		return_fittingLeafNodes.erase(return_fittingLeafNodes.end());
 	}
 
 	return lastFittingNode;
@@ -185,19 +175,17 @@ void CompletionTrie::print() {
 		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
 		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
 				+ node->getFirstChildOffset());
-		std::cout << node->getString() << "\t"
 
-		<< (int) node->getSize() << "\t"
-				<< (int) (u_int8_t) (node->getFirstChildOffset()) << "\t"
-				<< "\t" << firstChild->getString() << "\t" << layer
-				<< std::endl;
+		std::cout << node->getString() << "\t" << (int) node->getSize() << "\t"
+				<< (int) (u_int8_t) (node->getDeltaScore()) << "\t" << "\t"
+				<< firstChild->getString() << "\t" << layer << std::endl;
 
 		if (node->isLastSibling_) {
 			layer++;
 		}
 
 		node_ptr += node->getSize();
-	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize);
+	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize - 8/*safety margin*/);
 
 	std::vector<PackedNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;

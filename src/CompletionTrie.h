@@ -21,6 +21,19 @@ struct SimpleSuggestions;
 
 class PackedNode;
 
+struct NodeWithParentScoreStore {
+	u_int32_t parentScore;
+	PackedNode* node;
+	std::string prefix;
+	std::string getString() {
+		return prefix + node->getString();
+	}
+
+	u_int32_t getScore() {
+		return parentScore - node->getDeltaScore();
+	}
+};
+
 class CompletionTrie {
 public:
 	CompletionTrie(char* mem, u_int32_t _memSize);
@@ -37,7 +50,7 @@ public:
 	 *  Node
 	 */
 	PackedNode* findBestFitting(const std::string term, int& return_prefixPos,
-			std::vector<std::string>& return_fittingLeafNodes);
+			std::vector<NodeWithParentScoreStore>& return_fittingLeafNodes);
 
 	std::shared_ptr<SimpleSuggestions> getSuggestions(std::string prefix,
 			const int k);

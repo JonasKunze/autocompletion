@@ -23,18 +23,24 @@
 
 bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
-	if (left->getTrieLayer() == right->getTrieLayer()) {
-
-		if (left->getParent()->score == right->getParent()->score) {
-			if (left->score == right->score) {
-				return left->suffix < right->suffix;
-			}
-			return left->score > right->score;
-		}
-		return left->getParent()->score > right->getParent()->score;
-
+	long l1 = (((long) (left->getTrieLayer() - right->getTrieLayer())) << (32))
+			+ ((long) right->getParentScore() - left->getParentScore());
+	if (l1 == 0) {
+		return left->score > right->score;
 	}
-	return left->getTrieLayer() < right->getTrieLayer();
+
+	return l1 < 0;
+//	if (left->getTrieLayer() == right->getTrieLayer()) {
+//		if (left->getParent()->score == right->getParent()->score) {
+//			if (left->score == right->score) {
+//				return left->suffix < right->suffix;
+//			}
+//			return left->score > right->score;
+//		}
+//		return left->getParent()->score > right->getParent()->score;
+//
+//	}
+//	return left->getTrieLayer() < right->getTrieLayer();
 }
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
@@ -54,7 +60,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	const u_int32_t memSize = BuilderNode::allNodes.size()
 			* PackedNode::getMaxSize();
 	u_int32_t memPointer = memSize;
-	char* mem = new char[memPointer];
+	char* mem = new char[memPointer + 8];
 	/*
 	 *  mem is now at last position + 1. Moving N to the left will allow us to write N bytes
 	 */
@@ -64,6 +70,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	for (auto it = BuilderNode::allNodes.rbegin();
 			it != BuilderNode::allNodes.rend(); ++it) {
 		BuilderNode* node = *it;
+
 		/*
 		 * Every time node->trieLayer changes the current node is the last sibling as we are
 		 * coming from the right side
@@ -71,10 +78,8 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		if (node->getParent() != lastParent) {
 			lastParent = node->getParent();
 			node->isLastSibbling = true;
-			if (node->getParent() != nullptr) {
-				node->getParent()->score = node->score;
-			}
 		}
+
 		/*
 		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
 		 */
@@ -83,6 +88,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		}
 
 		u_int32_t nodeSize = node->calculatePackedNodeSize(memPointer);
+
 		/*
 		 * Recalculate size as with the new offset the child offset might
 		 * need one more byte
@@ -218,7 +224,8 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 	restart: for (BuilderNode* node : parent->children) {
 		short lastFitPos = Utils::findFirstNonMatchingCharacter(
-				node->suffix.c_str(), remainingPrefix.c_str()) - 1;
+				std::move(node->suffix.c_str()),
+				std::move(remainingPrefix.c_str())) - 1;
 
 		if (lastFitPos != -1 && lastFitPos >= (short) node->suffix.length()) {
 			lastFitPos = node->suffix.length() - 1;
@@ -285,8 +292,10 @@ void CompletionTrieBuilder::print() {
 	std::cout << "================" << std::endl;
 	for (BuilderNode* node : BuilderNode::allNodes) {
 		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-				<< node->score << std::endl;
+				<< node->isLastSibbling << "\t" << node->score << std::endl;
 	}
+	std::cout << "========CompletionTrieBuilder::print END========"
+			<< std::endl;
 }
 
 /**

@@ -35,9 +35,11 @@ inline u_int8_t getNumberOfBytesToStore2b(u_int32_t i) {
 //	return msb == 0 ? 0 : msb <= 24 ? msb / 8 + 1 : 3;
 }
 
+/*
+ * Some LUTs for the 2bit values
+ */
 const u_int8_t numberOfBytesBy2bValue[] = { 0, 1, 2, 4 };
-
-static u_int32_t bitmaskFor2bValues[] = { 0, 0xFF, 0xFFFF, 0xFFFFFFFF };
+const u_int32_t bitmaskFor2bValues[] = { 0, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
 /**
  * A compact completion trie node
