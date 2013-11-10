@@ -30,7 +30,8 @@ public:
 	CompletionTrieBuilder();
 	virtual ~CompletionTrieBuilder();
 
-	void addString(std::string str, u_int32_t score);
+	void addString(std::string str, u_int32_t score, std::string image,
+			std::string url);
 	CompletionTrie* generateCompletionTrie();
 	void print();
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);

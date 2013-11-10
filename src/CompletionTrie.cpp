@@ -22,7 +22,7 @@ struct NodeWithScoreStoreComparator {
 	}
 };
 
-CompletionTrie::CompletionTrie(char* _mem, u_int32_t _memSize,
+CompletionTrie::CompletionTrie(char* _mem, u_int64_t _memSize,
 		std::shared_ptr<SuggestionStore> _suggestionStore) :
 		root(reinterpret_cast<PackedNode*>(_mem)), mem(_mem), memSize(_memSize), suggestionStore(
 				_suggestionStore) {
@@ -47,7 +47,7 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 	 * TODO: where should be put the nodes defining substrings of the requested term?
 	 */
 	for (NodeWithRelativeScoreStore n : fittingLeafNodes) {
-		suggestions->addSuggestion(n);
+		suggestions->addSuggestionWithImage(n);
 	}
 
 	if (node == root || node == nullptr) {
@@ -67,7 +67,7 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 		nodesByParentScore.pop_back();
 
 		if (nodeWithParentScore.node->isLeafNode()) {
-			suggestions->addSuggestion(nodeWithParentScore);
+			suggestions->addSuggestionWithImage(nodeWithParentScore);
 			if (suggestions->isFull()) {
 				return suggestions;
 			}

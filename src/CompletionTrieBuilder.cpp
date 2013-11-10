@@ -60,9 +60,9 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	std::sort(BuilderNode::allNodes.begin(), BuilderNode::allNodes.end(),
 			BuilderNodeLayerComparator());
 
-	const u_int32_t memSize = BuilderNode::allNodes.size()
+	const u_int64_t memSize = BuilderNode::allNodes.size()
 			* PackedNode::getMaxSize();
-	u_int32_t memPointer = memSize;
+	u_int64_t memPointer = memSize;
 	char* mem = new char[memPointer + 8];
 	/*
 	 *  mem is now at last position + 1. Moving N to the left will allow us to write N bytes
@@ -100,11 +100,13 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 		memPointer -= nodeSize;
 
-		PackedNode::createNode(mem + memPointer, node->suffix.length(),
-				node->suffix.c_str(), node->isLastSibbling,
-				node->getDeltaScore(),
+		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
+				node->suffix.length(), node->suffix.c_str(),
+				node->isLastSibbling, node->getDeltaScore(),
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
+
+		suggestionStore->addTerm(pNode, node->getUrl(), node->getImage());
 
 		/*
 		 * Update firstChildPointer every time. As we come from the right side the last
@@ -117,11 +119,19 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 	char* finalMem = new char[memSize - memPointer];
 	memcpy(finalMem, mem + memPointer, memSize - memPointer);
+
+	/*
+	 * Tell the suggestion Store where the nodes have been moved by the memcpy
+	 */
+	suggestionStore->setPointerDelta(
+			reinterpret_cast<u_int64_t>(mem) + memPointer
+					- reinterpret_cast<u_int64_t>(finalMem));
 	delete[] mem;
 	return new CompletionTrie(finalMem, memSize - memPointer, suggestionStore);
 }
 
-void CompletionTrieBuilder::addString(const std::string str, u_int32_t score) {
+void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
+		std::string image, std::string url) {
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
@@ -182,6 +192,8 @@ void CompletionTrieBuilder::addString(const std::string str, u_int32_t score) {
 			parent = child;
 			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
 		} else {
+			child->setImage(image);
+			child->setUrl(url);
 			break;
 		}
 	}
@@ -200,6 +212,8 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	secondNode->children = node->children;
 	node->children.clear();
 	node->addChild(secondNode);
+	secondNode->setImage(node->getImage());
+	secondNode->setUrl(node->getUrl());
 
 	for (BuilderNode* child : secondNode->children) {
 		child->setParent(secondNode);

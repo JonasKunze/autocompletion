@@ -142,39 +142,29 @@ struct PackedNode {
 						+ numberOfBytesBy2bValue[deltaScoreSize_], &offset,
 				numberOfBytesBy2bValue[firstChildOffsetSize_]);
 	}
-
-	/**
-	 * Returns the number of bytes this node's length has to be changed if the firstChildOffset would be
-	 * changed to the given value (may be negative)
-	 */
-	int8_t bytesToExtendOnFirstChildOffsetChange(const uint newOffset) {
-		return getNumberOfBytesToStore2b(newOffset)
-				- numberOfBytesBy2bValue[firstChildOffsetSize_];
-	}
-
-	u_int8_t getSize() const {
+	u_int32_t getSize() const {
 		return sizeof(PackedNode) + charactersSize_
 				+ numberOfBytesBy2bValue[deltaScoreSize_]
-				+ numberOfBytesBy2bValue[firstChildOffsetSize_] + 0;
+				+ numberOfBytesBy2bValue[firstChildOffsetSize_];
 	}
 
 	bool isLeafNode() {
 		return firstChildOffsetSize_ == 0;
 	}
 
-	static u_int8_t calculateSize(const u_int8_t characterSize,
+	static u_int32_t calculateSize(const u_int8_t characterSize,
 			const u_int32_t deltaScore, const u_int32_t firstChildOffset) {
 		return sizeof(PackedNode) + characterSize
 				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(deltaScore)]
 				+ numberOfBytesBy2bValue[getNumberOfBytesToStore2b(
-						firstChildOffset)] + 0;
+						firstChildOffset)];
 	}
 
 	/**
 	 * Returns the maximum size a PackedNode could take
 	 */
 	static u_int32_t getMaxSize() {
-		return sizeof(PackedNode) + 7 + 4 + 3 + 0;
+		return sizeof(PackedNode) + 7 + 4 + 3;
 	}
 
 	/**

@@ -8,6 +8,8 @@ CPP_SRCS += \
 ../src/CompletionTrie.cpp \
 ../src/CompletionTrieBuilder.cpp \
 ../src/PackedNode.cpp \
+../src/SuggestionList.cpp \
+../src/SuggestionStore.cpp \
 ../src/main.cpp 
 
 OBJS += \
@@ -15,6 +17,8 @@ OBJS += \
 ./src/CompletionTrie.o \
 ./src/CompletionTrieBuilder.o \
 ./src/PackedNode.o \
+./src/SuggestionList.o \
+./src/SuggestionStore.o \
 ./src/main.o 
 
 CPP_DEPS += \
@@ -22,6 +26,8 @@ CPP_DEPS += \
 ./src/CompletionTrie.d \
 ./src/CompletionTrieBuilder.d \
 ./src/PackedNode.d \
+./src/SuggestionList.d \
+./src/SuggestionStore.d \
 ./src/main.d 
 
 

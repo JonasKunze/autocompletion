@@ -9,28 +9,37 @@
 #define SUGGESTIONSTORE_H_
 
 #include <sys/types.h>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
+
+#include "PackedNode.h"
 #include "SuggestionList.h"
+
+class PackedNode;
 
 class SuggestionStore {
 private:
 	/*
-	 * images by term+leafNodeDeltaScore
-	 *
-	 * This way we can have several times the same term with different images
+	 * If the nodes have been moved since addTerm() has been called,
+	 * the delta will be stored here
 	 */
-	std::map<std::string, std::string> images;
+	u_int64_t pointerMovedDelta;
 
 	/*
-	 * URLs by term+leafNodeDeltaScore
+	 * images by (u_int64_t)node where node is PackedNode*
 	 *
-	 * This way we can have several times the same term with different images
 	 */
-	std::map<std::string, std::string> URLs;
+	std::map<u_int64_t, std::string> images;
+
+	/*
+	 * URLs by (u_int64_t)node where node is PackedNode*
+	 */
+	std::map<u_int64_t, std::string> URLs;
 public:
-	SuggestionStore() {
+	SuggestionStore() :
+			pointerMovedDelta(0) {
 	}
 
 	virtual ~SuggestionStore() {
@@ -40,23 +49,27 @@ public:
 		return std::make_shared<SuggestionList>(k, this);
 	}
 
-	void addTerm(std::string term, u_int32_t leafNodeDeltaScore,
-			std::string URL, std::string image) {
-		images[term + std::to_string(leafNodeDeltaScore)] = image;
-		URLs[term + std::to_string(leafNodeDeltaScore)] = URL;
+	void addTerm(PackedNode* node, std::string URL, std::string image) {
+		images[reinterpret_cast<u_int64_t>(node)] = image;
+		URLs[reinterpret_cast<u_int64_t>(node)] = URL;
 	}
 
-	void addTerm(std::string term, u_int32_t leafNodeDeltaScore,
-			std::string URL) {
-		URLs[term + std::to_string(leafNodeDeltaScore)] = URL;
+//	void addTerm(PackedNode* node, std::string* URL) {
+//		if (URL != nullptr) {
+//			URLs[reinterpret_cast<u_int64_t>(node)] = std::string(*URL);
+//		}
+//	}
+
+	std::string getURL(PackedNode* node) {
+		return URLs[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
 	}
 
-	std::string getURL(std::string term, u_int32_t leafNodeDeltaScore) {
-		return URLs[term + std::to_string(leafNodeDeltaScore)];
+	std::string getImage(PackedNode* node) {
+		return images[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
 	}
 
-	std::string getImage(std::string term, u_int32_t leafNodeDeltaScore) {
-		return images[term + std::to_string(leafNodeDeltaScore)];
+	void setPointerDelta(const u_int64_t delta) {
+		pointerMovedDelta = delta;
 	}
 };
 

@@ -48,7 +48,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-1000000.tsv");
+			"data/wiki-10000.tsv");
 //			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
@@ -57,7 +57,8 @@ void performanceTest() {
 	start = Utils::getCurrentMicroSeconds();
 
 	for (auto nodeValue : nodeValues) {
-		builder.addString(nodeValue.first, nodeValue.second);
+		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first,
+				nodeValue.first);
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
@@ -67,6 +68,7 @@ void performanceTest() {
 
 	start = Utils::getCurrentMicroSeconds();
 	CompletionTrie* trie = builder.generateCompletionTrie();
+
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
 			<< trie->getMemoryConsumption() << std::endl;
@@ -82,22 +84,18 @@ void performanceTest() {
 			<< " suggestions:" << std::endl;
 	for (Suggestion sugg : suggestions->suggestedWords) {
 		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-				<< sugg.image << std::endl;
+				<< sugg.URL << "\t" << sugg.image << std::endl;
 	}
 
 	const char* chars = (char*) "'.-_+01234";
 
 	start = Utils::getCurrentMicroSeconds();
-	int runs = 1000000;
+	int runs = 100000;
 	for (int i = 0; i < runs; i++) {
 		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
 		std::string randStr = std::string(&chars[pos], 6);
 		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(
 				randStr, 10);
-
-//		for (std::string str : suggestions->suggestedWords) {
-//			std::cout << str << std::endl;
-//		}
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / (float) runs << " us for finding suggestions"
@@ -127,8 +125,8 @@ void performanceTest() {
 
 int main() {
 //	CompletionTrieBuilder builder;
-//	builder.addString("a", 15078);
-//	builder.addString("a", 13132);
+//	builder.addString("a", 15078, std::string("image"), std::string("url"));
+//	builder.addString("a", 13132, "image", "url");
 //
 //////
 //////	builder.addString("'Outstanding", 175);
@@ -171,9 +169,9 @@ int main() {
 //
 //	for (Suggestion sugg : suggestions->suggestedWords) {
 //		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-//				<< sugg.image << std::endl;
+//				<< sugg.URL << "\t" << sugg.image << std::endl;
 //	}
-
+//
 	performanceTest();
 
 	return 0;

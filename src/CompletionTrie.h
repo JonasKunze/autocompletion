@@ -43,7 +43,7 @@ struct NodeWithRelativeScoreStore {
 
 class CompletionTrie {
 public:
-	CompletionTrie(char* mem, u_int32_t _memSize, std::shared_ptr<SuggestionStore> _suggestionStore);
+	CompletionTrie(char* mem, u_int64_t _memSize, std::shared_ptr<SuggestionStore> _suggestionStore);
 	virtual ~CompletionTrie();
 
 	void addTerm(const std::string term, const u_int32_t score);
@@ -64,7 +64,7 @@ public:
 
 	void print();
 
-	u_int32_t getMemoryConsumption() const {
+	u_int64_t getMemoryConsumption() const {
 		return memSize;
 	}
 
@@ -76,7 +76,7 @@ private:
 	 * TODO: Use a memory mapped file for persistency
 	 */
 	const char* mem;
-	const u_int32_t memSize;
+	const u_int64_t memSize;
 
 	std::shared_ptr<SuggestionStore> suggestionStore;
 

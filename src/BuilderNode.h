@@ -34,26 +34,26 @@ public:
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 	u_int16_t trieLayer;
 
-	std::string URL;
-	std::string image;
-
 	/*
 	 * The absolute pointer to the firstChild. Use this while writing this node to calculate the offset
 	 */
 	u_int32_t firstChildPointer;
+
+	std::string URL;
+	std::string image;
 
 	static std::vector<BuilderNode*> allNodes;
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
 			parent(nullptr), isLastSibbling(false), score(0), parentScore(0), trieLayer(
-					0), firstChildPointer(0) {
+					0), firstChildPointer(0), URL(""), image("") {
 	}
 	virtual ~BuilderNode();
 
 	void addChild(BuilderNode* child);
 
-	u_int8_t calculatePackedNodeSize(u_int32_t nodePointer) {
+	u_int32_t calculatePackedNodeSize(u_int32_t nodePointer) {
 		return PackedNode::calculateSize(suffix.length(), getDeltaScore(),
 				firstChildPointer != 0 ? firstChildPointer - nodePointer : 0);
 	}
@@ -99,6 +99,22 @@ public:
 		for (BuilderNode* child : children) {
 			child->setTrieLayer(trieLayer + 1);
 		}
+	}
+
+	std::string getImage() const {
+		return image;
+	}
+
+	void setImage(std::string image) {
+		this->image = image;
+	}
+
+	std::string getUrl() const {
+		return URL;
+	}
+
+	void setUrl(std::string url) {
+		this->URL = url;
 	}
 };
 
