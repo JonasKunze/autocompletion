@@ -12,17 +12,17 @@
 #include "SuggestionStore.h"
 
 void SuggestionList::addSuggestion(NodeWithRelativeScoreStore nodeWithParent) {
-	const std::string URL = store->getURL(nodeWithParent.node);
+	const ImageAndURL imageAndURL = store->getImageAndURL(nodeWithParent.node);
 	suggestedWords.push_back(
-			{ nodeWithParent.getString(), nodeWithParent.getRelativeScore(), URL });
+			{ nodeWithParent.getString(), nodeWithParent.getRelativeScore(),
+					imageAndURL.URL });
 }
 
 void SuggestionList::addSuggestionWithImage(
 		NodeWithRelativeScoreStore nodeWithParent) {
-	const std::string URL = store->getURL(nodeWithParent.node);
-	const std::string image = store->getImage(nodeWithParent.node);
+	const ImageAndURL imageAndURL = store->getImageAndURL(nodeWithParent.node);
 
 	suggestedWords.push_back(
 			{ nodeWithParent.getString(), nodeWithParent.getRelativeScore(),
-					URL, image });
+					imageAndURL.URL, imageAndURL.image });
 }

@@ -10,7 +10,7 @@
 
 #include <sys/types.h>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
 
@@ -18,6 +18,11 @@
 #include "SuggestionList.h"
 
 class PackedNode;
+
+struct ImageAndURL {
+	std::string image;
+	std::string URL;
+};
 
 class SuggestionStore {
 private:
@@ -28,15 +33,11 @@ private:
 	u_int64_t pointerMovedDelta;
 
 	/*
-	 * images by (u_int64_t)node where node is PackedNode*
+	 * images and URLs by (u_int64_t)node where node is PackedNode*
 	 *
 	 */
-	std::map<u_int64_t, std::string> images;
+	std::unordered_map<u_int64_t, ImageAndURL> imagesAndURLs;
 
-	/*
-	 * URLs by (u_int64_t)node where node is PackedNode*
-	 */
-	std::map<u_int64_t, std::string> URLs;
 public:
 	SuggestionStore() :
 			pointerMovedDelta(0) {
@@ -50,22 +51,11 @@ public:
 	}
 
 	void addTerm(PackedNode* node, std::string URL, std::string image) {
-		images[reinterpret_cast<u_int64_t>(node)] = image;
-		URLs[reinterpret_cast<u_int64_t>(node)] = URL;
+		imagesAndURLs[reinterpret_cast<u_int64_t>(node)] = {image, URL};
 	}
 
-//	void addTerm(PackedNode* node, std::string* URL) {
-//		if (URL != nullptr) {
-//			URLs[reinterpret_cast<u_int64_t>(node)] = std::string(*URL);
-//		}
-//	}
-
-	std::string getURL(PackedNode* node) {
-		return URLs[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
-	}
-
-	std::string getImage(PackedNode* node) {
-		return images[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
+	ImageAndURL getImageAndURL(PackedNode* node) {
+		return imagesAndURLs[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
 	}
 
 	void setPointerDelta(const u_int64_t delta) {

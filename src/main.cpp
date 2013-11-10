@@ -48,7 +48,7 @@ void performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-10000.tsv");
+			"data/wiki-1000000.tsv");
 //			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
