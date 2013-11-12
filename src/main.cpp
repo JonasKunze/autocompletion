@@ -10,123 +10,105 @@
 
 //#include <deque>
 
-#include <sys/types.h>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
+#include <stdint.h>
+#include <stdio.h>
 #include <string>
-#include <utility>
-#include <vector>
+#include <zmq.h>
+#include <sstream>
 
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "SuggestionList.h"
-#include "Utils.h"
+#include "PerformanceTest.h"
 
 using namespace std;
 
-std::vector<std::pair<std::string, int> > readFile(std::string fileName) {
-	std::vector<std::pair<std::string, int> > nodes;
-	ifstream myReadFile;
-	myReadFile.open(fileName);
+static int receiveString(void *socket, const unsigned short length,
+		char* buffer) {
+	int size = zmq_recv(socket, buffer, length, 0);
+	if (size == -1)
+		return size;
+	if (size > length)
+		size = length;
 
-	if (myReadFile.is_open()) {
-		while (!myReadFile.eof()) {
-			std::string term;
-			u_int32_t score;
-
-			myReadFile >> term;
-			myReadFile >> score;
-			nodes.push_back(std::make_pair(term, score));
-		}
-	}
-	myReadFile.close();
-	return nodes;
+	buffer[size] = '\0';
+	return size;
 }
 
-void performanceTest() {
-	CompletionTrieBuilder builder;
-	long start = Utils::getCurrentMicroSeconds();
-	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-			"data/wiki-1000000.tsv");
-//			"data/all.1gs");
-//			"data/test.tsv");
-	long time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000. << " ms for reading file" << std::endl;
+std::string formatSuggestion(std::string suggestion, std::string key) {
+	std::stringstream ss;
+	ss << "{\"suggestion\":\"" << suggestion << "\",\"key\":\"" << key << "\"}";
+	return ss.str();
+}
 
-	start = Utils::getCurrentMicroSeconds();
+static std::string generateResponse(const CompletionTrie* trie, char* req,
+		int requestLength) {
+	std::string request(req, requestLength);
 
-	for (auto nodeValue : nodeValues) {
-		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first,
-				nodeValue.first);
-	}
-	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
+	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(request,
+			10);
 
-	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
-			<< std::endl;
-
-	start = Utils::getCurrentMicroSeconds();
-	CompletionTrie* trie = builder.generateCompletionTrie();
-
-	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / 1000. << " ms for creating packed trie with "
-			<< trie->getMemoryConsumption() << std::endl;
-
-	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
-			<< std::endl;
-
-//	trie->print();
-
-	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("'", 10);
-
-	std::cout << "Found " << suggestions->suggestedWords.size()
-			<< " suggestions:" << std::endl;
+	std::stringstream jsonStream;
+	jsonStream << "{\"suggestionList\": [";
+	bool isFirstSuggestion = true;
 	for (Suggestion sugg : suggestions->suggestedWords) {
-		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-				<< sugg.URL << "\t" << sugg.image << std::endl;
+		if (!isFirstSuggestion) {
+			jsonStream << ",";
+		} else {
+			isFirstSuggestion = false;
+		}
+		jsonStream << formatSuggestion(sugg.suggestion, sugg.URL);
+
 	}
+	jsonStream << "]}";
 
-	const char* chars = (char*) "'.-_+01234";
+//			"{\"suggestionList\": [{\"key\": 1, \"suggestion\": \"Anna\"}, {\"key\": 2, \"suggestion\": \"Berta\"}, {\"key\": 3, \"suggestion\": \"Carolin\"}, {\"key\": 4, \"suggestion\": \"Dorothee\"}, {\"key\": \"\", \"suggestion\": \"df\"}]}"
+	return jsonStream.str();
+}
 
-	start = Utils::getCurrentMicroSeconds();
-	int runs = 100000;
-	for (int i = 0; i < runs; i++) {
-		int pos = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 10;
-		std::string randStr = std::string(&chars[pos], 6);
-		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(
-				randStr, 10);
+static int startServer(const CompletionTrie* trie) {
+	/*
+	 * Connect to pull and push socket of sockjsproxy
+	 */
+	void *context = zmq_ctx_new();
+	void *in_socket = zmq_socket(context, ZMQ_PULL);
+	zmq_connect(in_socket, "tcp://localhost:9241");
+	void *out_socket = zmq_socket(context, ZMQ_PUSH);
+	zmq_connect(out_socket, "tcp://localhost:9242");
+
+	char messageBuffer[13];
+	char dataBuffer[1500];
+	while (1) {
+		int messageSize = receiveString(in_socket, sizeof(messageBuffer),
+				&messageBuffer[0]);
+		uint64_t session_ID;
+		zmq_recv(in_socket, &session_ID, sizeof(session_ID), 0);
+
+		receiveString(in_socket, sizeof(dataBuffer), dataBuffer);
+
+		if (strcmp(messageBuffer, "message\0") == 0) {
+			printf("message: %s\n", messageBuffer);
+			printf("data: %s\n", dataBuffer);
+			zmq_send(out_socket, messageBuffer, messageSize, ZMQ_SNDMORE);
+			zmq_send(out_socket, &session_ID, sizeof(session_ID), ZMQ_SNDMORE);
+
+			std::string response = generateResponse(trie, dataBuffer,
+					messageSize);
+			zmq_send(out_socket, response.c_str(), response.size(), 0);
+		} else if (strcmp(messageBuffer, "connect\0") == 0) {
+			printf("New client: %ld\n", session_ID);
+		} else if (strcmp(messageBuffer, "disconnect\0") == 0) {
+			printf("Client disconnected: %ld\n", session_ID);
+		}
 	}
-	time = Utils::getCurrentMicroSeconds() - start;
-	std::cout << time / (float) runs << " us for finding suggestions"
-			<< std::endl;
-
-//	do {
-//		std::string str;
-//		std::cout << "Please enter search string: ";
-//		std::cin >> str;
-//
-//		if (str == "\\q") {
-//			return;
-//		}
-//
-//		start = Utils::getCurrentMicroSeconds();
-//		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(str,
-//				10);
-//		time = Utils::getCurrentMicroSeconds() - start;
-//		std::cout << time << " us for finding suggestions" << std::endl;
-//
-//		for (Suggestion sugg : suggestions->suggestedWords) {
-//			std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-//					<< sugg.image << std::endl;
-//		}
-//	} while (true);
+	return 0;
 }
 
 int main() {
 //	CompletionTrieBuilder builder;
 //	builder.addString("a", 15078, std::string("image"), std::string("url"));
-//	builder.addString("a", 13132, "image", "url");
+//	builder.addString("c", 13132, "image", "url");
+//	builder.addString("b", 13132, "image", "url");
 //
 //////
 //////	builder.addString("'Outstanding", 175);
@@ -161,7 +143,7 @@ int main() {
 //////	builder.addString("abe", 1235);
 //////	builder.addString("ade", 1236);
 //
-//	CompletionTrie* trie = builder.generateCompletionTrie();
+//	const CompletionTrie* trie = builder.generateCompletionTrie();
 //	builder.print();
 //
 //	trie->print();
@@ -171,8 +153,9 @@ int main() {
 //		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
 //				<< sugg.URL << "\t" << sugg.image << std::endl;
 //	}
-//
-	performanceTest();
+
+	CompletionTrie* trie = performanceTest();
+	startServer(trie);
 
 	return 0;
 }

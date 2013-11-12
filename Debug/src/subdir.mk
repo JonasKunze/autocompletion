@@ -10,7 +10,8 @@ CPP_SRCS += \
 ../src/PackedNode.cpp \
 ../src/SuggestionList.cpp \
 ../src/SuggestionStore.cpp \
-../src/main.cpp 
+../src/main.cpp \
+../src/zmqJSONServer.cpp 
 
 OBJS += \
 ./src/BuilderNode.o \
@@ -19,7 +20,8 @@ OBJS += \
 ./src/PackedNode.o \
 ./src/SuggestionList.o \
 ./src/SuggestionStore.o \
-./src/main.o 
+./src/main.o \
+./src/zmqJSONServer.o 
 
 CPP_DEPS += \
 ./src/BuilderNode.d \
@@ -28,7 +30,8 @@ CPP_DEPS += \
 ./src/PackedNode.d \
 ./src/SuggestionList.d \
 ./src/SuggestionStore.d \
-./src/main.d 
+./src/main.d \
+./src/zmqJSONServer.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

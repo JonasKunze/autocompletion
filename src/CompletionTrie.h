@@ -43,7 +43,8 @@ struct NodeWithRelativeScoreStore {
 
 class CompletionTrie {
 public:
-	CompletionTrie(char* mem, u_int64_t _memSize, std::shared_ptr<SuggestionStore> _suggestionStore);
+	CompletionTrie(char* mem, u_int64_t _memSize,
+			std::shared_ptr<SuggestionStore> _suggestionStore);
 	virtual ~CompletionTrie();
 
 	void addTerm(const std::string term, const u_int32_t score);
@@ -57,12 +58,12 @@ public:
 	 *  Node
 	 */
 	PackedNode* findBestFitting(const std::string term, int& return_prefixPos,
-			std::vector<NodeWithRelativeScoreStore>& return_fittingLeafNodes);
+			std::vector<NodeWithRelativeScoreStore>& return_fittingLeafNodes) const;
 
 	std::shared_ptr<SuggestionList> getSuggestions(std::string prefix,
-			const int k);
+			const int k) const;
 
-	void print();
+	void print() const;
 
 	u_int64_t getMemoryConsumption() const {
 		return memSize;
@@ -97,7 +98,7 @@ private:
 	 * Returns the first child of the given node. If the node does not have any children
 	 * the node itself is returned
 	 */
-	PackedNode* getFirstChild(PackedNode* parent) {
+	PackedNode* getFirstChild(PackedNode* parent) const {
 		return reinterpret_cast<PackedNode*>(reinterpret_cast<char*>(parent)
 				+ parent->getFirstChildOffset());
 	}
@@ -106,7 +107,7 @@ private:
 	 * Returns the next sibling of the given node. If the node does not have any sibling
 	 * nullptr is returned
 	 */
-	PackedNode* getNextSibling(PackedNode* node) {
+	PackedNode* getNextSibling(PackedNode* node) const {
 		if (node->isLastSibling_) {
 			return nullptr;
 		}
@@ -114,7 +115,7 @@ private:
 				+ node->getSize());
 	}
 
-	void printNode(PackedNode* parent, std::vector<PackedNode*> locus);
+	void printNode(PackedNode* parent, std::vector<PackedNode*> locus) const;
 };
 
 #endif /* COMPLETIONTRIE_H_ */

@@ -33,7 +33,7 @@ CompletionTrie::~CompletionTrie() {
 }
 
 std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
-		const int k) {
+		const int k) const {
 	auto suggestions = suggestionStore->getSuggestionList(k);
 
 	int termPrefixPos = 0;
@@ -103,7 +103,7 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 
 PackedNode* CompletionTrie::findBestFitting(const std::string term,
 		int& return_prefixPos,
-		std::vector<NodeWithRelativeScoreStore>& return_fittingLeafNodes) {
+		std::vector<NodeWithRelativeScoreStore>& return_fittingLeafNodes) const {
 
 	uint charPos = 0;
 	const char* prefixChars = term.c_str();
@@ -179,7 +179,7 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 	return lastFittingNode;
 }
 
-void CompletionTrie::print() {
+void CompletionTrie::print() const {
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
 	int layer = 0;
@@ -212,7 +212,7 @@ void CompletionTrie::print() {
  * Recursively prints a node and all its children in the dot format "parent -- child"
  */
 void CompletionTrie::printNode(PackedNode* parent,
-		std::vector<PackedNode*> locus) {
+		std::vector<PackedNode*> locus) const {
 	PackedNode* child = getFirstChild(parent);
 	if (child == parent) {
 		return;
