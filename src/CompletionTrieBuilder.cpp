@@ -56,6 +56,64 @@ CompletionTrieBuilder::~CompletionTrieBuilder() {
 	}
 }
 
+static std::vector<std::pair<std::string, int> > readFile(
+		const std::string fileName) {
+	std::vector<std::pair<std::string, int> > nodes;
+	std::ifstream myReadFile;
+	myReadFile.open(fileName);
+	if (myReadFile.fail()) {
+		std::cerr << "File does not exist: " << fileName << std::endl;
+		exit(1);
+	}
+
+	if (myReadFile.is_open()) {
+		while (!myReadFile.eof()) {
+			std::string term;
+			u_int32_t score;
+
+			myReadFile >> term;
+			myReadFile >> score;
+			nodes.push_back(std::make_pair(term, score));
+		}
+	}
+	myReadFile.close();
+	return nodes;
+}
+
+CompletionTrie* CompletionTrieBuilder::buildFromFile(
+		const std::string fileName) {
+	CompletionTrieBuilder builder;
+	long start = Utils::getCurrentMicroSeconds();
+	std::vector<std::pair<std::string, int> > nodeValues = readFile(fileName);
+
+	long time = Utils::getCurrentMicroSeconds() - start;
+	std::cout << time / 1000. << " ms for reading file" << std::endl;
+
+	start = Utils::getCurrentMicroSeconds();
+
+	for (auto nodeValue : nodeValues) {
+		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first,
+				nodeValue.first);
+	}
+	time = Utils::getCurrentMicroSeconds() - start;
+	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
+
+	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
+			<< std::endl;
+
+	start = Utils::getCurrentMicroSeconds();
+
+	CompletionTrie* trie = builder.generateCompletionTrie();
+
+	time = Utils::getCurrentMicroSeconds() - start;
+	std::cout << time / 1000. << " ms for creating packed trie with "
+			<< trie->getMemoryConsumption() << std::endl;
+
+	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
+			<< std::endl;
+	return trie;
+}
+
 CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	std::sort(BuilderNode::allNodes.begin(), BuilderNode::allNodes.end(),
 			BuilderNodeLayerComparator());

@@ -1,6 +1,6 @@
 src/main.d: ../src/main.cpp ../src/CompletionTrie.h ../src/PackedNode.h \
  ../src/utils/Utils.h ../src/CompletionTrieBuilder.h ../src/BuilderNode.h \
- ../src/SuggestionList.h ../src/PerformanceTest.h
+ ../src/options/Options.h ../src/SuggestionList.h
 
 ../src/CompletionTrie.h:
 
@@ -12,6 +12,6 @@ src/main.d: ../src/main.cpp ../src/CompletionTrie.h ../src/PackedNode.h \
 
 ../src/BuilderNode.h:
 
-../src/SuggestionList.h:
+../src/options/Options.h:
 
-../src/PerformanceTest.h:
+../src/SuggestionList.h:

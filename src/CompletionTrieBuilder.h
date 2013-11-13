@@ -35,6 +35,8 @@ public:
 	CompletionTrie* generateCompletionTrie();
 	void print();
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);
+
+	static CompletionTrie* buildFromFile(const std::string fileName);
 private:
 	BuilderNode* root;
 

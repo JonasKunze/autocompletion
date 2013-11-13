@@ -12,28 +12,25 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <string>
+#include <string.h>
+#include <zmq.h>
 #include <zmq.hpp>
+#include <iosfwd>
+#include <iostream>
+#include <memory>
+#include <ostream>
 #include <sstream>
+#include <string>
+#include <string>
 
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
+#include "options/Options.h"
+//#include "PerformanceTest.h"
 #include "SuggestionList.h"
-#include "PerformanceTest.h"
+#include "utils/Utils.h"
 
 using namespace std;
-
-static int receiveString(void *socket, const unsigned short length,
-		char* buffer) {
-	int size = zmq_recv(socket, buffer, length, 0);
-	if (size == -1)
-		return size;
-	if (size > length)
-		size = length;
-
-	buffer[size] = '\0';
-	return size;
-}
 
 std::string formatSuggestion(std::string suggestion, std::string key) {
 	std::stringstream ss;
@@ -66,67 +63,111 @@ static std::string generateResponse(const CompletionTrie* trie, char* req,
 	return jsonStream.str();
 }
 
+//static int startServer(const CompletionTrie* trie) {
+//	/*
+//	 * Connect to pull and push socket of sockjsproxy
+//	 */
+//	zmq::context_t context(1);
+//	zmq::socket_t in_socket(context, ZMQ_PULL);
+//	in_socket.connect("tcp://localhost:9241");
+//
+//	zmq::socket_t out_socket(context, ZMQ_PUSH);
+//	out_socket.connect("tcp://localhost:9242");
+//
+//	while (1) {
+//		zmq::message_t message_msg;
+//		zmq::message_t session_ID_msg;
+//		zmq::message_t data;
+//
+//		in_socket.recv(&message_msg);
+//		std::string message(reinterpret_cast<char*>(message_msg.data()),
+//				message_msg.size());
+//		in_socket.recv(&session_ID_msg);
+//
+//		uint64_t session_ID = reinterpret_cast<uint64_t>(session_ID_msg.data());
+//
+//		in_socket.recv(&data);
+//
+//		if (message == "message") {
+//			std::cout << "ID=" << session_ID << std::endl;
+//			std::cout << "Message: " << message << std::endl;
+//			out_socket.send(message_msg, ZMQ_SNDMORE);
+//			out_socket.send(session_ID_msg, ZMQ_SNDMORE);
+//
+//			long start = Utils::getCurrentMicroSeconds();
+//			std::string response = generateResponse(trie,
+//					reinterpret_cast<char*>(data.data()), data.size());
+//			long time = Utils::getCurrentMicroSeconds() - start;
+//			std::cout << "Generating answer took " << time << "µs" << std::endl;
+//
+//			data.rebuild((unsigned long) response.length());
+//			memcpy((void *) data.data(), response.c_str(),
+//					(unsigned long) response.length());
+//			out_socket.send(data);
+//		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
+//				"connect\0") == 0) {
+//			printf("New client: %ld\n", session_ID);
+//		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
+//				"disconnect\0") == 0) {
+//			printf("Client disconnected: %ld\n", session_ID);
+//		}
+//	}
+//	return 0;
+//}
+
+static int receiveString(void *socket, const unsigned short length,
+		char* buffer) {
+	int size = zmq_recv(socket, buffer, length, 0);
+	if (size == -1)
+		return size;
+	if (size > length)
+		size = length;
+
+	buffer[size] = '\0';
+	return size;
+}
+
 static int startServer(const CompletionTrie* trie) {
 	/*
 	 * Connect to pull and push socket of sockjsproxy
 	 */
-//	void *context = zmq_ctx_new();
-//	void *in_socket = zmq_socket(context, ZMQ_PULL);
-//	zmq_connect(in_socket, "tcp://localhost:9241");
-//
-//	void *out_socket = zmq_socket(context, ZMQ_PUSH);
-//	int status = zmq_connect(out_socket, "tcp://localhost:9242");
-//	std::cout << status << "!!!" << std::endl;
-//  Prepare our context and socket
-	zmq::context_t context(1);
-	zmq::socket_t in_socket(context, ZMQ_PULL);
-	in_socket.connect("tcp://localhost:9241");
+	void *context = zmq_ctx_new();
+	void *in_socket = zmq_socket(context, ZMQ_PULL);
+	zmq_connect(in_socket, "tcp://localhost:9241");
 
-	zmq::socket_t out_socket(context, ZMQ_PUSH);
-	out_socket.connect("tcp://localhost:9242");
+	void *out_socket = zmq_socket(context, ZMQ_PUSH);
+	int status = zmq_connect(out_socket, "tcp://localhost:9242");
+	std::cout << status << "!!!" << std::endl;
 
+	char messageBuffer[13];
+	char dataBuffer[1500];
 	while (1) {
-		zmq::message_t message_msg;
-		zmq::message_t session_ID_msg;
-		zmq::message_t data;
+		int messageSize = receiveString(in_socket, sizeof(messageBuffer),
+				&messageBuffer[0]);
+		uint64_t session_ID;
+		zmq_recv(in_socket, &session_ID, sizeof(session_ID), 0);
 
-		in_socket.recv(&message_msg);
-		std::string message(reinterpret_cast<char*>(message_msg.data()),
-				message_msg.size());
-		in_socket.recv(&session_ID_msg);
+		int dataSize = receiveString(in_socket, sizeof(dataBuffer), dataBuffer);
 
-		uint64_t session_ID = reinterpret_cast<uint64_t>(session_ID_msg.data());
+		if (strcmp(messageBuffer, "message\0") == 0) {
+			printf("message: %s\n", messageBuffer);
+			printf("data: %s\n", dataBuffer);
+			zmq_send(out_socket, messageBuffer, messageSize, ZMQ_SNDMORE);
+			zmq_send(out_socket, &session_ID, sizeof(session_ID), ZMQ_SNDMORE);
 
-		in_socket.recv(&data);
-
-		if (message == "message") {
-			std::cout << "ID=" << session_ID << std::endl;
-			std::cout << "Message: " << message << std::endl;
-			out_socket.send(message_msg, ZMQ_SNDMORE);
-			out_socket.send(session_ID_msg, ZMQ_SNDMORE);
-
-			long start = Utils::getCurrentMicroSeconds();
-			std::string response = generateResponse(trie,
-					reinterpret_cast<char*>(data.data()), data.size());
-			long time = Utils::getCurrentMicroSeconds() - start;
-			std::cout << "Generating answer took " << time << "µs" << std::endl;
-
-			data.rebuild((unsigned long) response.length());
-			memcpy((void *) data.data(), response.c_str(),
-					(unsigned long) response.length());
-			out_socket.send(data);
-		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
-				"connect\0") == 0) {
+			std::string response = generateResponse(trie, dataBuffer, dataSize);
+			zmq_send(out_socket, response.c_str(), response.size(), 0);
+		} else if (strcmp(messageBuffer, "connect\0") == 0) {
 			printf("New client: %ld\n", session_ID);
-		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
-				"disconnect\0") == 0) {
+		} else if (strcmp(messageBuffer, "disconnect\0") == 0) {
 			printf("Client disconnected: %ld\n", session_ID);
 		}
 	}
 	return 0;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+	Options::Initialize(argc, argv);
 //	CompletionTrieBuilder builder;
 //	builder.addString("a", 15078, std::string("image"), std::string("url"));
 //	builder.addString("c", 13132, "image", "url");
@@ -176,7 +217,8 @@ int main() {
 //				<< sugg.URL << "\t" << sugg.image << std::endl;
 //	}
 
-	CompletionTrie* trie = performanceTest();
+	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
+			Options::GetString(OPTION_LOAD_FILE));
 	startServer(trie);
 
 	return 0;
