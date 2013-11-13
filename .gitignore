@@ -11,6 +11,5 @@
 *.lai
 *.la
 *.a
-/Debug
 /data
 gmon.out
