@@ -97,7 +97,6 @@ static int startServer(const CompletionTrie* trie) {
 
 		uint64_t session_ID = reinterpret_cast<uint64_t>(session_ID_msg.data());
 
-
 		in_socket.recv(&data);
 
 		if (message == "message") {
@@ -106,8 +105,12 @@ static int startServer(const CompletionTrie* trie) {
 			out_socket.send(message_msg, ZMQ_SNDMORE);
 			out_socket.send(session_ID_msg, ZMQ_SNDMORE);
 
+			long start = Utils::getCurrentMicroSeconds();
 			std::string response = generateResponse(trie,
 					reinterpret_cast<char*>(data.data()), data.size());
+			long time = Utils::getCurrentMicroSeconds() - start;
+			std::cout << "Generating answer took " << time << "µs" << std::endl;
+
 			data.rebuild((unsigned long) response.length());
 			memcpy((void *) data.data(), response.c_str(),
 					(unsigned long) response.length());
