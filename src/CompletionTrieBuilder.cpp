@@ -19,7 +19,7 @@
 #include "CompletionTrie.h"
 #include "PackedNode.h"
 #include "SuggestionStore.h"
-#include "Utils.h"
+#include "utils/Utils.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
 

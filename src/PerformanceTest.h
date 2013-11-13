@@ -19,7 +19,7 @@
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "SuggestionList.h"
-#include "Utils.h"
+#include "utils/Utils.h"
 
 using namespace std;
 
@@ -47,8 +47,8 @@ static CompletionTrie* performanceTest() {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
 	std::vector<std::pair<std::string, int> > nodeValues = readFile(
-//			"data/wiki-100000.tsv");
-			"data/all.1gs");
+			"data/wiki-100000.tsv");
+//			"data/all.1gs");
 //			"data/test.tsv");
 	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for reading file" << std::endl;

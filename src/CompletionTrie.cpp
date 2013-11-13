@@ -12,7 +12,7 @@
 #include <iterator>
 
 #include "SuggestionStore.h"
-#include "Utils.h"
+#include "utils/Utils.h"
 
 struct NodeWithScoreStoreComparator {
 	bool operator()(const NodeWithRelativeScoreStore left,

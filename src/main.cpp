@@ -73,8 +73,10 @@ static int startServer(const CompletionTrie* trie) {
 	void *context = zmq_ctx_new();
 	void *in_socket = zmq_socket(context, ZMQ_PULL);
 	zmq_connect(in_socket, "tcp://localhost:9241");
+
 	void *out_socket = zmq_socket(context, ZMQ_PUSH);
-	zmq_connect(out_socket, "tcp://localhost:9242");
+	int status = zmq_connect(out_socket, "tcp://localhost:9242");
+	std::cout << status << "!!!" << std::endl;
 
 	char messageBuffer[13];
 	char dataBuffer[1500];
