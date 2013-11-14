@@ -39,7 +39,7 @@ public:
 	 */
 	u_int32_t firstChildPointer;
 
-	std::string URL;
+	std::string URI;
 	std::string image;
 
 	static std::vector<BuilderNode*> allNodes;
@@ -47,7 +47,7 @@ public:
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
 			parent(nullptr), isLastSibbling(false), score(0), parentScore(0), trieLayer(
-					0), firstChildPointer(0), URL(""), image("") {
+					0), firstChildPointer(0), URI(""), image("") {
 	}
 	virtual ~BuilderNode();
 
@@ -109,12 +109,12 @@ public:
 		this->image = image;
 	}
 
-	std::string getUrl() const {
-		return URL;
+	std::string getURI() const {
+		return URI;
 	}
 
-	void setUrl(std::string url) {
-		this->URL = url;
+	void setURI(std::string url) {
+		this->URI = url;
 	}
 };
 

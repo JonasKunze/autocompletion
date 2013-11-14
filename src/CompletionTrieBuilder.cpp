@@ -107,7 +107,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
-			<< trie->getMemoryConsumption() << std::endl;
+			<< trie->getMemoryConsumption() << " Bytes" << std::endl;
 
 	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
 			<< std::endl;
@@ -164,7 +164,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
 
-		suggestionStore->addTerm(pNode, node->getUrl(), node->getImage());
+		suggestionStore->addTerm(pNode, node->getURI(), node->getImage());
 
 		/*
 		 * Update firstChildPointer every time. As we come from the right side the last
@@ -189,7 +189,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 }
 
 void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
-		std::string image, std::string url) {
+		std::string image, std::string URI) {
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
@@ -251,7 +251,7 @@ void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
 			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
 		} else {
 			child->setImage(image);
-			child->setUrl(url);
+			child->setURI(URI);
 			break;
 		}
 	}
@@ -271,7 +271,7 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	node->children.clear();
 	node->addChild(secondNode);
 	secondNode->setImage(node->getImage());
-	secondNode->setUrl(node->getUrl());
+	secondNode->setURI(node->getURI());
 
 	for (BuilderNode* child : secondNode->children) {
 		child->setParent(secondNode);

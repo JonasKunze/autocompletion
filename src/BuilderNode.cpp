@@ -25,7 +25,7 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
 		const std::string _suffix) :
 		parent(_parent), isLastSibbling(false), score(_deltaScore), suffix(
-				_suffix), firstChildPointer(0), URL(""), image("") {
+				_suffix), firstChildPointer(0), URI(""), image("") {
 	allNodes.push_back(this);
 
 	if (parent != nullptr) {
