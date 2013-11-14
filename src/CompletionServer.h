@@ -15,7 +15,7 @@
 #define BUILDER_ZMQ_PORT "9243"
 
 #define BUILDER_MSG_START_BULK (uint8_t)1
-#define BUILDER_MSG_PUT  (uint8_t)2
+#define BUILDER_MSG_INSERT  (uint8_t)2
 #define BUILDER_MSG_STOP_BULK  (uint8_t)3
 
 class CompletionTrie;

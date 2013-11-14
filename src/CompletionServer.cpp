@@ -155,51 +155,56 @@ void CompletionServer::builderThread() {
 					<< std::endl;
 		}
 		uint8_t msg;
+		int64_t more;
 		zmq_recv(socket, &msg, sizeof(msg), 0);
 
-		if (msg == BUILDER_MSG_PUT) {
-			/*
-			 * Get Term
-			 */
-			int dataSize = receiveString(socket, sizeof(dataBuffer),
-					dataBuffer);
-			std::string term(dataBuffer, dataSize);
+		if (msg == BUILDER_MSG_INSERT) {
+			do {
+				/*
+				 * Get Term
+				 */
+				int dataSize = receiveString(socket, sizeof(dataBuffer),
+						dataBuffer);
+				std::string term(dataBuffer, dataSize);
 
-			/*
-			 * Get score
-			 */
-			uint32_t score;
-			zmq_recv(socket, &score, sizeof(score), 0);
+				/*
+				 * Get score
+				 */
+				uint32_t score;
+				zmq_recv(socket, &score, sizeof(score), 0);
 
-			/*
-			 * Get URI
-			 */
-			dataSize = receiveString(socket, sizeof(dataBuffer), dataBuffer);
-			std::string URI(dataBuffer, dataSize);
-
-			/*
-			 * Get Image if there is one more part of the current multi-part message
-			 */
-			int64_t more;
-			size_t more_size = sizeof more;
-			rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
-
-			std::string image = "";
-			if (rc == 0 && more) {
+				/*
+				 * Get URI
+				 */
 				dataSize = receiveString(socket, sizeof(dataBuffer),
 						dataBuffer);
-				image = std::string(dataBuffer, dataSize);
-			}
-			CompletionTrieBuilder* builder = builders[index];
-			if (builder == nullptr) {
-				std::cerr
-						<< "Trying to add term but no CompletionTrieBuilder exists for index "
-						<< index << "!" << std::endl;
-			} else {
-				std::cout << "Adding Term " << term << "\t" << score << "\t"
-						<< image << "\t" << URI << std::endl;
-				builder->addString(term, score, image, URI);
-			}
+				std::string URI(dataBuffer, dataSize);
+
+				/*
+				 * Get Image if there is one more part of the current multi-part message
+				 */
+				size_t more_size = sizeof more;
+				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
+
+				std::string image = "";
+				if (rc == 0 && more) {
+					dataSize = receiveString(socket, sizeof(dataBuffer),
+							dataBuffer);
+					image = std::string(dataBuffer, dataSize);
+				}
+				CompletionTrieBuilder* builder = builders[index];
+				if (builder == nullptr) {
+					std::cerr
+							<< "Trying to add term but no CompletionTrieBuilder exists for index "
+							<< index << "!" << std::endl;
+				} else {
+					std::cout << "Adding Term " << term << "\t" << score << "\t"
+							<< image << "\t" << URI << std::endl;
+					builder->addString(term, score, image, URI);
+				}
+				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
+			} while (more);
+
 		} else if (msg == BUILDER_MSG_START_BULK) {
 			if (builders.count(index)) {
 				std::cerr << "Starting trie building of index " << index
