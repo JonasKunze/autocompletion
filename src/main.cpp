@@ -13,6 +13,7 @@
 #include <ctime>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "CompletionServer.h"
 #include "CompletionTrie.h"
@@ -24,23 +25,14 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
-	Options::Initialize(argc, argv);
-
-	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
-			Options::GetString(OPTION_LOAD_FILE));
-
-//	trie->print();
-
-	PerformanceTest::runTest(trie);
-
+void interactiveThread(const CompletionTrie* trie) {
 	do {
 		std::string str;
 		std::cout << "Please enter search string: ";
 		std::cin >> str;
 
 		if (str == "\\q") {
-			return 0;
+			return;
 		}
 
 		long start = Utils::getCurrentMicroSeconds();
@@ -54,6 +46,18 @@ int main(int argc, char* argv[]) {
 					<< sugg.image << std::endl;
 		}
 	} while (true);
+}
+int main(int argc, char* argv[]) {
+	Options::Initialize(argc, argv);
+
+	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
+			Options::GetString(OPTION_LOAD_FILE));
+
+//	trie->print();
+
+	PerformanceTest::runTest(trie);
+
+	std::thread t(&interactiveThread, trie);
 
 	CompletionServer server(trie);
 	server.start();
