@@ -71,7 +71,7 @@ static std::vector<std::pair<std::string, int> > readFile(
 			std::string term;
 			u_int32_t score;
 
-			myReadFile >> term;
+			std::getline(myReadFile, term, '\t'); // Read including whitespace
 			myReadFile >> score;
 			nodes.push_back(std::make_pair(term, score));
 		}
@@ -104,7 +104,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	start = Utils::getCurrentMicroSeconds();
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
-//	builder.print();
+	builder.print();
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
