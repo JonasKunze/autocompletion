@@ -10,10 +10,17 @@
 
 //#include <deque>
 
+#include <ctime>
+#include <iostream>
+#include <string>
+
 #include "CompletionServer.h"
+#include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "options/Options.h"
 #include "PerformanceTest.h"
+#include "SuggestionList.h"
+#include "utils/Utils.h"
 
 using namespace std;
 
@@ -23,19 +30,30 @@ int main(int argc, char* argv[]) {
 	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
 			Options::GetString(OPTION_LOAD_FILE));
 
-	trie->print();
+//	trie->print();
 
 	PerformanceTest::runTest(trie);
 
-	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("a",
-			10);
+	do {
+		std::string str;
+		std::cout << "Please enter search string: ";
+		std::cin >> str;
 
-	std::cout << "Found " << suggestions->suggestedWords.size()
-			<< " suggestions:" << std::endl;
-	for (Suggestion sugg : suggestions->suggestedWords) {
-		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-				<< sugg.URI << "\t" << sugg.image << std::endl;
-	}
+		if (str == "\\q") {
+			return 0;
+		}
+
+		long start = Utils::getCurrentMicroSeconds();
+		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(str,
+				10);
+		long time = Utils::getCurrentMicroSeconds() - start;
+		std::cout << time << " us for finding suggestions" << std::endl;
+
+		for (Suggestion sugg : suggestions->suggestedWords) {
+			std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
+					<< sugg.image << std::endl;
+		}
+	} while (true);
 
 	CompletionServer server(trie);
 	server.start();

@@ -29,7 +29,6 @@ public:
 
 		int runs = 100000;
 
-		long start = Utils::getCurrentMicroSeconds();
 		for (int i = 0; i < runs; i++) {
 			std::stringstream randStr;
 			for (int j = std::rand() * (1.0 / (RAND_MAX + 1.0)) * 6; j != 0;
@@ -61,26 +60,6 @@ public:
 //				<< " us for finding suggestions (random time "
 //				<< randomTime / (float) runs << "µs is extracted)" << std::endl;
 
-//	do {
-//		std::string str;
-//		std::cout << "Please enter search string: ";
-//		std::cin >> str;
-//
-//		if (str == "\\q") {
-//			return;
-//		}
-//
-//		start = Utils::getCurrentMicroSeconds();
-//		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(str,
-//				10);
-//		time = Utils::getCurrentMicroSeconds() - start;
-//		std::cout << time << " us for finding suggestions" << std::endl;
-//
-//		for (Suggestion sugg : suggestions->suggestedWords) {
-//			std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-//					<< sugg.image << std::endl;
-//		}
-//	} while (true);
 		return trie;
 	}
 }

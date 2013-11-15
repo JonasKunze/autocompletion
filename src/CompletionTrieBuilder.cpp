@@ -205,7 +205,7 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 			&& charsRemainingForLastNode < parent->suffix.length()) {
 
 		if (numberOfCharsFound == str.length()
-				&& parent->suffix.length() - charsRemainingForLastNode == 1) {
+				&& parent->suffix.length() == charsRemainingForLastNode + 1) {
 			/*
 			 * E.g. we've added XXXabc and than XXXa. In this case we should not split abc but
 			 * add a to abc's parent XXX
@@ -216,25 +216,11 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 			parent = locus.top();
 		} else {
 			/*
-			 * E.g. we've added abc and than a12. We need to split abc at position 1
-			 * so that we have a->bc and can add d to a (than we have a->d, a->bc).
-			 *
-			 * So we split parent after numberOfCharsFound-1 chars.
+			 * Here we found more than one char but not all of parent
 			 */
-			if (parent->suffix.length() - charsRemainingForLastNode - 1 == 0) {
-				splitNode(parent, 1);
-			} else {
-				/*
-				 * E.g. we've added abcd and than abce. We need to split abc at position c
-				 * so that we have abc->d and can add e to abc (than we have abc->d, abc->e).
-				 *
-				 * So we split parent after numberOfCharsFound-1 chars.
-				 */
-				splitNode(parent,
-						parent->suffix.length() - charsRemainingForLastNode
-								- 1);
-				--numberOfCharsFound;
-			}
+
+			splitNode(parent,
+					parent->suffix.length() - charsRemainingForLastNode);
 
 		}
 	}
@@ -371,6 +357,8 @@ void CompletionTrieBuilder::print() {
 	if (!Options::VERBOSE) {
 		return;
 	}
+	std::cout << "============ CompletionTrieBuilder ============" << std::endl;
+
 	std::deque<BuilderNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;
 

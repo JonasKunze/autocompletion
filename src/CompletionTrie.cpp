@@ -200,6 +200,7 @@ void CompletionTrie::print() const {
 	if (!Options::VERBOSE) {
 		return;
 	}
+	std::cout << "============ CompletionTrie ============" << std::endl;
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
 	int layer = 0;
