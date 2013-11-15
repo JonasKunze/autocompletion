@@ -64,15 +64,6 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 		std::sort(nodesByParentScore.begin(), nodesByParentScore.end(),
 				NodeWithScoreStoreComparator());
 
-		std::cout << "=========================" << std::endl;
-		for (auto nodeWithScore : nodesByParentScore) {
-			std::cout << nodeWithScore.getRelativeScore() << "\t"
-					<< nodeWithScore.relativeScoreOfParent << "\t"
-					<< nodeWithScore.node->getDeltaScore() << "\t"
-					<< nodeWithScore.getString() << std::endl;
-		}
-		std::cout << "=========================" << std::endl;
-
 		NodeWithRelativeScoreStore nodeWithParentScore =
 				*nodesByParentScore.rbegin();
 		nodesByParentScore.pop_back();
