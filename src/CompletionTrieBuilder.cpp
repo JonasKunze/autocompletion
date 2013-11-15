@@ -7,16 +7,22 @@
 
 #include "CompletionTrieBuilder.h"
 
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <cstring>
-#include <deque>
+//#include <deque>
+#include <fstream>
 #include <iostream>
 #include <iterator>
-#include <memory>
+//#include <memory>
+#include <set>
+#include <utility>
 #include <vector>
 
 #include "CompletionTrie.h"
+#include "options/Options.h"
 #include "PackedNode.h"
 #include "SuggestionStore.h"
 #include "utils/Utils.h"
@@ -104,7 +110,9 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	start = Utils::getCurrentMicroSeconds();
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
-	builder.print();
+	if (Options::VERBOSE) {
+		builder.print();
+	}
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "

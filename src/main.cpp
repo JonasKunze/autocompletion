@@ -23,11 +23,14 @@ int main(int argc, char* argv[]) {
 	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
 			Options::GetString(OPTION_LOAD_FILE));
 
-	trie->print();
+	if (Options::VERBOSE) {
+		trie->print();
+	}
 
 	PerformanceTest::runTest(trie);
 
-	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("ab cd", 10);
+	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("ab cd",
+			10);
 
 	std::cout << "Found " << suggestions->suggestedWords.size()
 			<< " suggestions:" << std::endl;
