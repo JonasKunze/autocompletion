@@ -195,7 +195,8 @@ void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
 	/*
 	 * If the searched term is longer than the string defined by the current parent node
 	 */
-	if (parent != root && charsRemainingForLastNode < parent->suffix.length()) {
+	if (parent != root && parent->suffix.length() != 1
+			&& charsRemainingForLastNode < parent->suffix.length()) {
 
 		if (numberOfCharsFound == str.length()
 				&& parent->suffix.length() - charsRemainingForLastNode == 1) {
