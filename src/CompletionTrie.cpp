@@ -34,6 +34,7 @@ CompletionTrie::~CompletionTrie() {
 
 std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 		const int k) const {
+	std::transform(term.begin(), term.end(), term.begin(), ::tolower);
 	auto suggestions = suggestionStore->getSuggestionList(k);
 
 	int termPrefixPos = 0;

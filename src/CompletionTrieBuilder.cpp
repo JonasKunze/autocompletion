@@ -182,8 +182,10 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 	return new CompletionTrie(finalMem, memSize - memPointer, suggestionStore);
 }
 
-void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
+void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 		std::string image, std::string URI) {
+	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
