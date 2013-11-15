@@ -192,8 +192,10 @@ void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
 
 	BuilderNode* parent = locus.top();
 
-	if (parent != root && charsRemainingForLastNode != 0
-			&& charsRemainingForLastNode < parent->suffix.length()) {
+	/*
+	 * If the searched term is longer than the string defined by the current parent node
+	 */
+	if (parent != root && charsRemainingForLastNode < parent->suffix.length()) {
 
 		if (numberOfCharsFound == str.length()
 				&& parent->suffix.length() - charsRemainingForLastNode == 1) {
@@ -207,13 +209,26 @@ void CompletionTrieBuilder::addString(const std::string str, u_int32_t score,
 			parent = locus.top();
 		} else {
 			/*
-			 * E.g. we've added abc and than ad. We need to split abc at position 1
-			 * so that we have a->bc and can add ad to a (than we have a->d, a->bc).
+			 * E.g. we've added abc and than a12. We need to split abc at position 1
+			 * so that we have a->bc and can add d to a (than we have a->d, a->bc).
 			 *
-			 * In this case charsRemainingForLastNode will be 1
+			 * So we split parent after numberOfCharsFound-1 chars.
 			 */
-			splitNode(parent,
-					parent->suffix.length() - charsRemainingForLastNode);
+			if (parent->suffix.length() - charsRemainingForLastNode - 1 == 0) {
+				splitNode(parent, 1);
+			} else {
+				/*
+				 * E.g. we've added abcd and than abce. We need to split abc at position c
+				 * so that we have abc->d and can add e to abc (than we have abc->d, abc->e).
+				 *
+				 * So we split parent after numberOfCharsFound-1 chars.
+				 */
+				splitNode(parent,
+						parent->suffix.length() - charsRemainingForLastNode
+								- 1);
+				--numberOfCharsFound;
+			}
+
 		}
 	}
 

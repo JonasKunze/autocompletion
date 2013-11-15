@@ -37,20 +37,21 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 	auto suggestions = suggestionStore->getSuggestionList(k);
 
 	int termPrefixPos = 0;
+
 	std::vector<NodeWithRelativeScoreStore> fittingLeafNodes;
 	PackedNode* node = findBestFitting(term, termPrefixPos, fittingLeafNodes);
 	std::vector<PackedNode*> v;
 
+	/*
+	 * TODO if term is wihtin fittingLeafNodes this must be shown as first element!
+	 */
+
 	term = term.substr(0, termPrefixPos);
 
-	/*
-	 * TODO: where should be put the nodes defining substrings of the requested term?
-	 */
-	for (NodeWithRelativeScoreStore n : fittingLeafNodes) {
-		suggestions->addSuggestionWithImage(n);
-	}
-
 	if (node == root || node == nullptr) {
+		for (NodeWithRelativeScoreStore n : fittingLeafNodes) {
+			suggestions->addSuggestionWithImage(n);
+		}
 		return suggestions;
 	}
 
@@ -61,6 +62,15 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 	while (!nodesByParentScore.empty()) {
 		std::sort(nodesByParentScore.begin(), nodesByParentScore.end(),
 				NodeWithScoreStoreComparator());
+
+//		std::cout << "=========================" << std::endl;
+//		for (auto nodeWithScore : nodesByParentScore) {
+//			std::cout << nodeWithScore.getRelativeScore() << "\t"
+//					<< nodeWithScore.relativeScoreOfParent << "\t"
+//					<< nodeWithScore.node->getDeltaScore() << "\t"
+//					<< nodeWithScore.getString() << std::endl;
+//		}
+//		std::cout << "=========================" << std::endl;
 
 		NodeWithRelativeScoreStore nodeWithParentScore =
 				*nodesByParentScore.rbegin();
@@ -98,6 +108,9 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 		}
 	}
 
+	/*
+	 * TODO: where should be put the nodes defining substrings of the requested term?
+	 */
 	return suggestions;
 }
 
@@ -167,13 +180,22 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 
 	} while (charPos < term.length());
 
-	/*
-	 * Remove the lastFittingNode from the return_fittingLeafNode as it will be returned directly
-	 */
-	if (lastFittingNode != nullptr && !return_fittingLeafNodes.empty()
-			&& term.substr(0, charPos) + lastFittingNode->getString()
-					== (return_fittingLeafNodes.back()).getString()) {
-		return_fittingLeafNodes.erase(return_fittingLeafNodes.end());
+	if (lastFittingNode != nullptr
+			&& lastFittingNode->firstChildOffsetSize_ == 0) {
+		/*
+		 * It's already stored in return_fittingLeafNodes but we must return null als we
+		 * didnt find any fitting locus
+		 */
+		lastFittingNode = nullptr;
+	} else {
+		/*
+		 * Remove the lastFittingNode from the return_fittingLeafNode as it will be returned directly
+		 */
+		if (lastFittingNode != nullptr && !return_fittingLeafNodes.empty()
+				&& term.substr(0, charPos) + lastFittingNode->getString()
+						== (return_fittingLeafNodes.back()).getString()) {
+			return_fittingLeafNodes.erase(return_fittingLeafNodes.end());
+		}
 	}
 
 	return lastFittingNode;

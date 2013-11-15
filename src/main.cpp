@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
 	PerformanceTest::runTest(trie);
 
-	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("L", 10);
+	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("a", 10);
 
 	std::cout << "Found " << suggestions->suggestedWords.size()
 			<< " suggestions:" << std::endl;
@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
 				<< sugg.URI << "\t" << sugg.image << std::endl;
 	}
 
-	//	CompletionServer server(trie);
-//	server.start();
+	CompletionServer server(trie);
+	server.start();
 
 	return 0;
 }
