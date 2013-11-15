@@ -41,7 +41,6 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 			return left->parent < right->parent;
 		}
 		return left->parent->score > right->parent->score;
-
 	}
 	return left->getTrieLayer() < right->getTrieLayer();
 }
