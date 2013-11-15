@@ -13,15 +13,20 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <set>
 
 #include "PackedNode.h"
 #include "SuggestionList.h"
 
 class PackedNode;
 
-struct ImageAndURL {
+struct ImageAndURI {
+	std::string URI;
 	std::string image;
-	std::string URL;
+};
+
+struct ImageAndURIComparator {
+	bool operator()(const ImageAndURI& left, const ImageAndURI& right);
 };
 
 class SuggestionStore {
@@ -33,10 +38,16 @@ private:
 	u_int64_t pointerMovedDelta;
 
 	/*
-	 * images and URLs by (u_int64_t)node where node is PackedNode*
+	 * images and URIs by (u_int64_t)node where node is PackedNode*
 	 *
 	 */
-	std::unordered_map<u_int64_t, ImageAndURL> imagesAndURLs;
+	std::unordered_map<u_int64_t, const ImageAndURI*> imagesAndURIsByNode;
+
+	/*
+	 * This set is used to have only one struct per unique URI.
+	 * One URI with several Images is not allowed.
+	 */
+	std::set<ImageAndURI, ImageAndURIComparator> imagesAndURIs;
 
 public:
 	SuggestionStore() :
@@ -47,15 +58,14 @@ public:
 	}
 
 	std::shared_ptr<SuggestionList> getSuggestionList(const u_int8_t k) {
-		return std::make_shared<SuggestionList>(k, this);
+		return std::make_shared < SuggestionList > (k, this);
 	}
 
-	void addTerm(PackedNode* node, std::string URL, std::string image) {
-		imagesAndURLs[reinterpret_cast<u_int64_t>(node)] = {image, URL};
-	}
+	void addTerm(PackedNode* node, std::string URI, std::string image);
 
-	ImageAndURL getImageAndURL(PackedNode* node) {
-		return imagesAndURLs[reinterpret_cast<u_int64_t>(node) + pointerMovedDelta];
+	const ImageAndURI* getImageAndURI(PackedNode* node) {
+		return imagesAndURIsByNode[reinterpret_cast<u_int64_t>(node)
+				+ pointerMovedDelta];
 	}
 
 	void setPointerDelta(const u_int64_t delta) {

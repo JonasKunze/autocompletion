@@ -20,7 +20,7 @@ class SuggestionStore;
 struct Suggestion {
 	std::string suggestion;
 	u_int32_t relativeScore;
-	std::string URL;
+	std::string URI;
 	std::string image;
 };
 

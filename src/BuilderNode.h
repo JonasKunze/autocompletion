@@ -113,8 +113,8 @@ public:
 		return URI;
 	}
 
-	void setURI(std::string url) {
-		this->URI = url;
+	void setURI(std::string URI) {
+		this->URI = URI;
 	}
 };
 

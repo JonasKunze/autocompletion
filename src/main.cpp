@@ -13,6 +13,7 @@
 #include "CompletionServer.h"
 #include "CompletionTrieBuilder.h"
 #include "options/Options.h"
+#include "PerformanceTest.h"
 
 using namespace std;
 
@@ -21,8 +22,11 @@ int main(int argc, char* argv[]) {
 
 	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
 			Options::GetString(OPTION_LOAD_FILE));
-	CompletionServer server(trie);
-	server.start();
+
+	PerformanceTest::runTest(trie);
+
+	//	CompletionServer server(trie);
+//	server.start();
 
 	return 0;
 }

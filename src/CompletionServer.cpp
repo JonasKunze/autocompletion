@@ -57,7 +57,7 @@ std::string CompletionServer::generateResponse(const CompletionTrie* trie,
 		} else {
 			isFirstSuggestion = false;
 		}
-		jsonStream << formatSuggestion(sugg.suggestion, sugg.URL);
+		jsonStream << formatSuggestion(sugg.suggestion, sugg.URI);
 
 	}
 	jsonStream << "]}";
