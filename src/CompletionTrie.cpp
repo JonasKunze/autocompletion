@@ -8,9 +8,12 @@
 #include "CompletionTrie.h"
 
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <iterator>
 
+#include "options/Options.h"
+#include "SuggestionList.h"
 #include "SuggestionStore.h"
 #include "utils/Utils.h"
 
@@ -194,6 +197,9 @@ PackedNode* CompletionTrie::findBestFitting(const std::string term,
 }
 
 void CompletionTrie::print() const {
+	if (!Options::VERBOSE) {
+		return;
+	}
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
 	int layer = 0;

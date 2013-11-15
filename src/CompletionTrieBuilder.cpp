@@ -7,16 +7,13 @@
 
 #include "CompletionTrieBuilder.h"
 
-//#include <sys/types.h>
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
-//#include <deque>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-//#include <memory>
 #include <set>
 #include <utility>
 #include <vector>
@@ -80,6 +77,7 @@ static std::vector<std::pair<std::string, int> > readFile(
 			std::getline(myReadFile, term, '\t'); // Read including whitespace
 			myReadFile >> score;
 			nodes.push_back(std::make_pair(term, score));
+			std::getline(myReadFile, term, '\n');
 		}
 	}
 	myReadFile.close();
@@ -110,9 +108,8 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	start = Utils::getCurrentMicroSeconds();
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
-	if (Options::VERBOSE) {
-		builder.print();
-	}
+
+//	builder.print();
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
@@ -371,6 +368,9 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 }
 
 void CompletionTrieBuilder::print() {
+	if (!Options::VERBOSE) {
+		return;
+	}
 	std::deque<BuilderNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;
 
