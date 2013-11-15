@@ -23,13 +23,12 @@ struct BuilderNodeComparator {
 };
 
 class BuilderNode {
-private:
-	BuilderNode* parent;
 
 public:
-	bool isLastSibbling;
 	u_int32_t score;
-	u_int32_t parentScore;
+	BuilderNode* parent;
+	bool isLastSibbling;
+
 	std::string suffix;
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 	u_int16_t trieLayer;
@@ -46,8 +45,8 @@ public:
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			parent(nullptr), isLastSibbling(false), score(0), parentScore(0), trieLayer(
-					0), firstChildPointer(0), URI(""), image("") {
+			score(0), parent(nullptr), isLastSibbling(false), trieLayer(0), firstChildPointer(
+					0), URI(""), image("") {
 	}
 	virtual ~BuilderNode();
 
@@ -74,23 +73,24 @@ public:
 		return parent == nullptr;
 	}
 
-	inline BuilderNode* getParent() const {
-		return parent;
-	}
-
-	/**
-	 * This is called very often therefore parentScore is cached
-	 */
-	inline u_int32_t getParentScore() const {
-		return parentScore;
-//		return parent == nullptr ? 0xFFFFFFFF : parent->score;
-	}
+//	inline BuilderNode* getParent() const {
+//		return parent;
+//	}
 
 	void setParent(BuilderNode* parent) {
 		this->parent = parent;
-		trieLayer = parent->trieLayer + 1;
-		for (BuilderNode* child : children) {
-			child->setTrieLayer(trieLayer + 1);
+
+		if (parent != nullptr) {
+			trieLayer = parent->trieLayer + 1;
+			if (score > parent->score) {
+				parent->score = score;
+			}
+			trieLayer = parent->trieLayer + 1;
+			for (BuilderNode* child : children) {
+				child->setTrieLayer(trieLayer + 1);
+			}
+		} else {
+			trieLayer = 0;
 		}
 	}
 
@@ -101,20 +101,20 @@ public:
 		}
 	}
 
-	std::string getImage() const {
-		return image;
-	}
-
-	void setImage(std::string image) {
+	inline void setImage(std::string image) {
 		this->image = image;
 	}
 
-	std::string getURI() const {
-		return URI;
+	inline void setURI(std::string URI) {
+		this->URI = URI;
 	}
 
-	void setURI(std::string URI) {
-		this->URI = URI;
+	void setScore(u_int32_t score) {
+		if (parent != nullptr && score > parent->score) {
+			parent->score = score;
+		}
+
+		this->score = score;
 	}
 };
 

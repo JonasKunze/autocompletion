@@ -23,7 +23,18 @@ int main(int argc, char* argv[]) {
 	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
 			Options::GetString(OPTION_LOAD_FILE));
 
+//	trie->print();
+
 	PerformanceTest::runTest(trie);
+
+	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions("L", 10);
+
+	std::cout << "Found " << suggestions->suggestedWords.size()
+			<< " suggestions:" << std::endl;
+	for (Suggestion sugg : suggestions->suggestedWords) {
+		std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
+				<< sugg.URI << "\t" << sugg.image << std::endl;
+	}
 
 	//	CompletionServer server(trie);
 //	server.start();

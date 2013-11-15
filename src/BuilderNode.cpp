@@ -22,19 +22,13 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 	return left->score < right->score;
 }
 
-BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _deltaScore,
+BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _score,
 		const std::string _suffix) :
-		parent(_parent), isLastSibbling(false), score(_deltaScore), suffix(
-				_suffix), firstChildPointer(0), URI(""), image("") {
+		score(_score), parent(_parent), isLastSibbling(false), suffix(_suffix), firstChildPointer(
+				0), URI(""), image("") {
 	allNodes.push_back(this);
 
-	if (parent != nullptr) {
-		trieLayer = parent->trieLayer + 1;
-		parentScore = parent->score;
-	} else {
-		trieLayer = 0;
-		parentScore = 0xFFFFFFFF;
-	}
+	setParent(_parent);
 }
 
 BuilderNode::~BuilderNode() {

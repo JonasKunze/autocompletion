@@ -25,24 +25,25 @@
 
 bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
-	long l1 = (((long) (left->getTrieLayer() - right->getTrieLayer())) << (32))
-			+ ((long) right->getParentScore() - left->getParentScore());
-	if (l1 == 0) {
-		return left->score > right->score;
-	}
-
-	return l1 < 0;
-//	if (left->getTrieLayer() == right->getTrieLayer()) {
-//		if (left->getParent()->score == right->getParent()->score) {
-//			if (left->score == right->score) {
-//				return left->suffix < right->suffix;
-//			}
-//			return left->score > right->score;
-//		}
-//		return left->getParent()->score > right->getParent()->score;
-//
+//	long l1 = (((long) (left->getTrieLayer() - right->getTrieLayer())) << (32))
+//			+ ((long) right->parent->score
+//					- left->parent->score);
+//	if (l1 == 0) {
+//		return left->score > right->score;
 //	}
-//	return left->getTrieLayer() < right->getTrieLayer();
+//	return l1 < 0;
+
+	if (left->getTrieLayer() == right->getTrieLayer()) {
+		if (left->parent->score == right->parent->score) {
+			if (left->parent == right->parent) {
+				return left->score > right->score;
+			}
+			return left->parent < right->parent;
+		}
+		return left->parent->score > right->parent->score;
+
+	}
+	return left->getTrieLayer() < right->getTrieLayer();
 }
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
@@ -104,6 +105,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	start = Utils::getCurrentMicroSeconds();
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
+//	builder.print();
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
@@ -136,16 +138,9 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		 * Every time node->trieLayer changes the current node is the last sibling as we are
 		 * coming from the right side
 		 */
-		if (node->getParent() != lastParent) {
-			lastParent = node->getParent();
+		if (node->parent != lastParent) {
+			lastParent = node->parent;
 			node->isLastSibbling = true;
-		}
-
-		/*
-		 * The root node has no deltaScore as we'll hardcode the 0xffffffff
-		 */
-		if (node->isRootNode()) {
-			node->score = 0;
 		}
 
 		u_int32_t nodeSize = node->calculatePackedNodeSize(memPointer);
@@ -164,14 +159,14 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
 
-		suggestionStore->addTerm(pNode, node->getURI(), node->getImage());
+		suggestionStore->addTerm(pNode, node->URI, node->image);
 
 		/*
 		 * Update firstChildPointer every time. As we come from the right side the last
 		 * update will be the real first child
 		 */
-		if (node->getParent() != nullptr) { // Root node does not have a parent
-			node->getParent()->firstChildPointer = memPointer;
+		if (node->parent != nullptr) { // Root node does not have a parent
+			node->parent->firstChildPointer = memPointer;
 		}
 	}
 
@@ -270,8 +265,8 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	secondNode->children = node->children;
 	node->children.clear();
 	node->addChild(secondNode);
-	secondNode->setImage(node->getImage());
-	secondNode->setURI(node->getURI());
+	secondNode->setImage(node->image);
+	secondNode->setURI(node->URI);
 
 	for (BuilderNode* child : secondNode->children) {
 		child->setParent(secondNode);
