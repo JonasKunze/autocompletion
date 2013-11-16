@@ -71,6 +71,8 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 				*nodesByParentScore.rbegin();
 		nodesByParentScore.pop_back();
 
+//		std::cout << nodeWithParentScore.getString() << std::endl;
+
 		if (nodeWithParentScore.node->isLeafNode()) {
 			suggestions->addSuggestionWithImage(nodeWithParentScore);
 			if (suggestions->isFull()) {

@@ -201,64 +201,70 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	/*
 	 * If the searched term is longer than the string defined by the current parent node
 	 */
-	if (parent != root && parent->suffix.length() != 1
-			&& charsRemainingForLastNode < parent->suffix.length()) {
+//	if (parent != root && parent->suffix.length() != 1
+//			&& charsRemainingForLastNode < parent->suffix.length()) {
 
-		if (numberOfCharsFound == str.length()
-				&& parent->suffix.length() == charsRemainingForLastNode + 1) {
-			/*
-			 * E.g. we've added XXXabc and than XXXa. In this case we should not split abc but
-			 * add a to abc's parent XXX
-			 */
-			numberOfCharsFound -= parent->suffix.length()
-					- charsRemainingForLastNode;
-			locus.pop();
-			parent = locus.top();
-		} else {
-			/*
-			 * Here we found more than one char but not all of parent
-			 */
+		if (parent != root && charsRemainingForLastNode > 0
+				&& parent->suffix.length() != 1
+				&& charsRemainingForLastNode < parent->suffix.length()) {
 
-			splitNode(parent,
-					parent->suffix.length() - charsRemainingForLastNode);
+			if (numberOfCharsFound == str.length()
+					&& parent->suffix.length()
+							== charsRemainingForLastNode + 1) {
+				/*
+				 * E.g. we've added XXXabc and than XXXa. In this case we should not split abc but
+				 * add a to abc's parent XXX
+				 */
+				numberOfCharsFound -= parent->suffix.length()
+						- charsRemainingForLastNode;
+				locus.pop();
+				parent = locus.top();
+			} else {
+				/*
+				 * Here we found more than one char but not all of parent
+				 */
 
+				splitNode(parent,
+						parent->suffix.length() - charsRemainingForLastNode);
+
+			}
+		}
+
+		/*
+		 * If the parent is already a leaf node
+		 */
+		if (parent->isLeafNode() && charsRemainingForLastNode == 0
+				&& parent != root) {
+			if (parent->suffix.length() != 1) {
+				splitNode(parent, parent->suffix.length() - 1);
+				numberOfCharsFound--;
+			} else {
+				/*
+				 * parent is a non splittable leaf node -> take its parent instead
+				 */
+				numberOfCharsFound -= parent->suffix.length();
+				locus.pop();
+				parent = locus.top();
+			}
+		}
+
+		std::string prefix = str.substr(numberOfCharsFound);
+
+		std::string nodePrefix;
+		while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length()
+				!= 0) {
+			BuilderNode* child = new BuilderNode(parent, score, nodePrefix);
+			parent->addChild(child);
+			if (prefix.length() > MAXIMUM_PREFIX_SIZE) {
+				parent = child;
+				prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
+			} else {
+				child->setImage(image);
+				child->setURI(URI);
+				break;
+			}
 		}
 	}
-
-	/*
-	 * If the parent is already a leaf node
-	 */
-	if (parent->isLeafNode() && charsRemainingForLastNode == 0
-			&& parent != root) {
-		if (parent->suffix.length() != 1) {
-			splitNode(parent, parent->suffix.length() - 1);
-			numberOfCharsFound--;
-		} else {
-			/*
-			 * parent is a non splittable leaf node -> take its parent instead
-			 */
-			numberOfCharsFound -= parent->suffix.length();
-			locus.pop();
-			parent = locus.top();
-		}
-	}
-
-	std::string prefix = str.substr(numberOfCharsFound);
-
-	std::string nodePrefix;
-	while ((nodePrefix = prefix.substr(0, MAXIMUM_PREFIX_SIZE)).length() != 0) {
-		BuilderNode* child = new BuilderNode(parent, score, nodePrefix);
-		parent->addChild(child);
-		if (prefix.length() > MAXIMUM_PREFIX_SIZE) {
-			parent = child;
-			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
-		} else {
-			child->setImage(image);
-			child->setURI(URI);
-			break;
-		}
-	}
-}
 
 void CompletionTrieBuilder::splitNode(BuilderNode* node,
 		unsigned char splitPos) {
@@ -334,7 +340,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	 */
 	if (nextParent != nullptr) {
 		charsRemainingForLastNode = nextParent->suffix.length()
-				- nextParentsLastFitPos - 1;
+		- nextParentsLastFitPos - 1;
 		resultLocus.push(nextParent);
 
 		numberOfCharsFound += nextParentsLastFitPos + 1;
@@ -342,7 +348,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
 		if (remainingPrefix.size() == 0
 				|| static_cast<u_int32_t>(nextParentsLastFitPos + 1)
-						!= nextParent->suffix.length()) {
+				!= nextParent->suffix.length()) {
 			return resultLocus;
 		}
 		parent = nextParent;
@@ -370,10 +376,10 @@ void CompletionTrieBuilder::print() {
 	std::cout << "================" << std::endl;
 	for (BuilderNode* node : BuilderNode::allNodes) {
 		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-				<< node->isLastSibbling << "\t" << node->score << std::endl;
+		<< node->isLastSibbling << "\t" << node->score << std::endl;
 	}
 	std::cout << "========CompletionTrieBuilder::print END========"
-			<< std::endl;
+	<< std::endl;
 }
 
 /**
@@ -398,6 +404,6 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 			std::cout << parent->suffix;
 		}
 		std::cout << " -- " << child->suffix << " : " << child->score
-				<< std::endl;
+		<< std::endl;
 	}
 }
