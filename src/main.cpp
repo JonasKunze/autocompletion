@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 
 //	trie->print();
 
-//	PerformanceTest::runTest(trie);
+	PerformanceTest::runTest(trie);
 
 //	std::thread t(&interactiveThread, trie);
 //

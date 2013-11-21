@@ -35,9 +35,15 @@ CompletionServer::CompletionServer(CompletionTrie* _trie) :
 CompletionServer::~CompletionServer() {
 }
 
-static std::string formatSuggestion(std::string suggestion, std::string key) {
+static std::string formatSuggestion(const Suggestion sugg) {
 	std::stringstream ss;
-	ss << "{\"suggestion\":\"" << suggestion << "\",\"key\":\"" << key << "\"}";
+	ss << "{\"suggestion\":\"" << sugg.suggestion << "\",\"key\":\"" << sugg.URI
+			<< "\"";
+	if (sugg.image.length() != 0) {
+		ss << ",image\":\"" << sugg.image << "\"}";
+	} else {
+		ss << "}";
+	}
 	return ss.str();
 }
 
@@ -51,14 +57,13 @@ std::string CompletionServer::generateResponse(const CompletionTrie* trie,
 	std::stringstream jsonStream;
 	jsonStream << "{\"suggestionList\": [";
 	bool isFirstSuggestion = true;
-	for (Suggestion sugg : suggestions->suggestedWords) {
+	for (const Suggestion sugg : suggestions->suggestedWords) {
 		if (!isFirstSuggestion) {
 			jsonStream << ",";
 		} else {
 			isFirstSuggestion = false;
 		}
-		jsonStream << formatSuggestion(sugg.suggestion, sugg.URI);
-
+		jsonStream << formatSuggestion(sugg);
 	}
 	jsonStream << "]}";
 
