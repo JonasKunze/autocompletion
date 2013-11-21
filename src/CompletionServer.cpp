@@ -40,7 +40,7 @@ static std::string formatSuggestion(const Suggestion sugg) {
 	ss << "{\"suggestion\":\"" << sugg.suggestion << "\",\"key\":\"" << sugg.URI
 			<< "\"";
 	if (sugg.image.length() != 0) {
-		ss << ",image\":\"" << sugg.image << "\"}";
+		ss << ",\"image\":\"" << sugg.image << "\"}";
 	} else {
 		ss << "}";
 	}
