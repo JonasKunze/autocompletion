@@ -7,23 +7,27 @@
 
 #include "CompletionServer.h"
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 #include <zmq.h>
+#include <algorithm>
+#include <cstdlib>
 #include <iosfwd>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <ostream>
-#include <string>
 #include <sstream>
+#include <string>
 #include <thread>
-#include <map>
 
+//#include "BuilderNode.h"
 #include "CompletionTrie.h"
-#include "SuggestionList.h"
 #include "CompletionTrieBuilder.h"
-#include "BuilderNode.h"
+#include "SuggestionList.h"
 
 CompletionServer::CompletionServer() :
 		builderThread_(&CompletionServer::builderThread, this), trie(nullptr) {
@@ -85,6 +89,17 @@ static int receiveString(void *socket, const unsigned short length,
 	return size;
 }
 
+static std::string receiveString(void *socket) {
+//	char buff[1024];
+//	int length = receiveString(socket, sizeof(buff), buff);
+//	return std::string(buff, length);
+	zmq_msg_t msg;
+	zmq_msg_init(&msg);
+	int dataSize = zmq_recvmsg(socket, &msg, 0);
+	return std::string(std::move(std::move((char*) zmq_msg_data(&msg))),
+			dataSize);
+}
+
 void CompletionServer::builderThread() {
 	void *context = zmq_ctx_new();
 	void *socket = zmq_socket(context, ZMQ_PULL);
@@ -115,18 +130,14 @@ void CompletionServer::builderThread() {
 		/*
 		 * Second message: Message type
 		 */
-		uint8_t msgType;
+		std::string msgType = receiveString(socket);
 		int64_t more;
-		zmq_recv(socket, &msgType, sizeof(msgType), 0);
-
 		if (msgType == BUILDER_MSG_INSERT) {
 			do {
 				/*
 				 * 3rd message: Term
 				 */
-				int dataSize = receiveString(socket, sizeof(dataBuffer),
-						dataBuffer);
-				std::string term(dataBuffer, dataSize);
+				std::string term = receiveString(socket);
 
 				/*
 				 * 4th message: Score
@@ -137,9 +148,7 @@ void CompletionServer::builderThread() {
 				/*
 				 * 5th message: URI
 				 */
-				dataSize = receiveString(socket, sizeof(dataBuffer),
-						dataBuffer);
-				std::string URI(dataBuffer, dataSize);
+				std::string URI = receiveString(socket);
 
 				/*
 				 * 6th message: Image
@@ -153,10 +162,7 @@ void CompletionServer::builderThread() {
 				if (rc == 0 && more) {
 					zmq_msg_t msg;
 					zmq_msg_init(&msg);
-					dataSize = zmq_recvmsg(socket, &msg, 0);
-//					zmq_msg_recv(&socket, socket, 0);
-//					dataSize = receiveString(socket, sizeof(dataBuffer),
-//							dataBuffer);
+					int dataSize = zmq_recvmsg(socket, &msg, 0);
 					if (dataSize != -1) {
 						image = std::string((char*) zmq_msg_data(&msg),
 								dataSize);

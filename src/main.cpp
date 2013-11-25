@@ -50,8 +50,8 @@ void interactiveThread(const CompletionTrie* trie) {
 int main(int argc, char* argv[]) {
 	Options::Initialize(argc, argv);
 
-	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
-			Options::GetString(OPTION_LOAD_FILE));
+//	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
+//			Options::GetString(OPTION_LOAD_FILE));
 
 //	trie->print();
 
