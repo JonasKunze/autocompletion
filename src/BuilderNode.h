@@ -41,8 +41,6 @@ public:
 	std::string URI;
 	std::string image;
 
-	static std::vector<BuilderNode*> allNodes;
-
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
 			score(0), parent(nullptr), isLastSibbling(false), trieLayer(0), firstChildPointer(

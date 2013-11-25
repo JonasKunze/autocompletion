@@ -16,10 +16,6 @@
 po::variables_map Options::vm;
 po::options_description Options::desc("Allowed options");
 
-std::map<std::string, std::string> SettingStore;
-
-std::vector<INotifiable*> Options::registeredUpdatables;
-
 #define DEFAUL_SETTINGS_FILE ".settings"
 
 /*
@@ -103,12 +99,7 @@ bool Options::Isset(char* parameter) {
 }
 
 std::string Options::GetString(char* parameter) {
-	std::string str;
-	if (SettingStore.find(std::string(parameter)) != SettingStore.end()) {
-		str = SettingStore[parameter].c_str();
-	} else {
-		str = vm[parameter].as<std::string>();
-	}
+	std::string str = vm[parameter].as<std::string>();
 
 	size_t pos = 0;
 	while ((pos = str.find("\\n", pos)) != std::string::npos) {
@@ -119,9 +110,6 @@ std::string Options::GetString(char* parameter) {
 }
 
 int Options::GetInt(char* parameter) {
-	if (SettingStore.find(std::string(parameter)) != SettingStore.end()) {
-		return atoi(SettingStore[parameter].c_str());
-	}
 	return vm[parameter].as<int>();
 }
 
@@ -176,9 +164,6 @@ std::vector<double> Options::GetDoubleList(char* parameter) {
 }
 
 float Options::GetFloat(char* parameter) {
-	if (SettingStore.find(std::string(parameter)) != SettingStore.end()) {
-		return atof(SettingStore[parameter].c_str());
-	}
 	return vm[parameter].as<float>();
 }
 

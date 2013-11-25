@@ -11,11 +11,11 @@
 #include <sys/types.h>
 #include <deque>
 #include <memory>
-//#include <set>
 #include <stack>
 #include <string>
+#include <vector>
 
-#include "BuilderNode.h"
+class BuilderNode;
 
 class SuggestionStore;
 
@@ -39,8 +39,12 @@ public:
 	static CompletionTrie* buildFromFile(const std::string fileName);
 private:
 	BuilderNode* root;
+	std::vector<BuilderNode*> allNodes;
 
 	std::shared_ptr<SuggestionStore> suggestionStore;
+
+	BuilderNode* createNode(BuilderNode* parent, u_int32_t score,
+			std::string _suffix);
 
 	/**
 	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned

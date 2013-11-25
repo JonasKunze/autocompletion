@@ -23,6 +23,7 @@
 #include "CompletionTrie.h"
 #include "SuggestionList.h"
 #include "CompletionTrieBuilder.h"
+#include "BuilderNode.h"
 
 CompletionServer::CompletionServer() :
 		builderThread_(&CompletionServer::builderThread, this), trie(nullptr) {
@@ -71,58 +72,6 @@ std::string CompletionServer::generateResponse(const CompletionTrie* trie,
 
 	return jsonStream.str();
 }
-
-//static int startServer(const CompletionTrie* trie) {
-//	/*
-//	 * Connect to pull and push socket of sockjsproxy
-//	 */
-//	zmq::context_t context(1);
-//	zmq::socket_t in_socket(context, ZMQ_PULL);
-//	in_socket.connect("tcp://localhost:9241");
-//
-//	zmq::socket_t out_socket(context, ZMQ_PUSH);
-//	out_socket.connect("tcp://localhost:9242");
-//
-//	while (1) {
-//		zmq::message_t message_msg;
-//		zmq::message_t session_ID_msg;
-//		zmq::message_t data;
-//
-//		in_socket.recv(&message_msg);
-//		std::string message(reinterpret_cast<char*>(message_msg.data()),
-//				message_msg.size());
-//		in_socket.recv(&session_ID_msg);
-//
-//		uint64_t session_ID = reinterpret_cast<uint64_t>(session_ID_msg.data());
-//
-//		in_socket.recv(&data);
-//
-//		if (message == "message") {
-//			std::cout << "ID=" << session_ID << std::endl;
-//			std::cout << "Message: " << message << std::endl;
-//			out_socket.send(message_msg, ZMQ_SNDMORE);
-//			out_socket.send(session_ID_msg, ZMQ_SNDMORE);
-//
-//			long start = Utils::getCurrentMicroSeconds();
-//			std::string response = generateResponse(trie,
-//					reinterpret_cast<char*>(data.data()), data.size());
-//			long time = Utils::getCurrentMicroSeconds() - start;
-//			std::cout << "Generating answer took " << time << "µs" << std::endl;
-//
-//			data.rebuild((unsigned long) response.length());
-//			memcpy((void *) data.data(), response.c_str(),
-//					(unsigned long) response.length());
-//			out_socket.send(data);
-//		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
-//				"connect\0") == 0) {
-//			printf("New client: %ld\n", session_ID);
-//		} else if (strcmp(reinterpret_cast<char*>(message_msg.data()),
-//				"disconnect\0") == 0) {
-//			printf("Client disconnected: %ld\n", session_ID);
-//		}
-//	}
-//	return 0;
-//}
 
 static int receiveString(void *socket, const unsigned short length,
 		char* buffer) {
@@ -211,7 +160,10 @@ void CompletionServer::builderThread() {
 			} while (more);
 
 		} else if (msg == BUILDER_MSG_START_BULK) {
-			if (builders.count(index)) {
+			std::cout << "Received Start Bulk command for index " << index
+					<< std::endl;
+
+			if (builders.find(index)!=builders.end()) {
 				std::cerr << "Starting trie building of index " << index
 						<< " but a triBuilder already exists for this index! Will create a new one."
 						<< std::endl;
@@ -219,8 +171,12 @@ void CompletionServer::builderThread() {
 				builders.erase(index);
 			}
 			CompletionTrieBuilder* builder = new CompletionTrieBuilder();
-			builders.insert(std::make_pair(index, builder));
+			builders[index] = builder;
+			builder->print();
+			std::cout << builders[index] << "????" << std::endl;
 		} else if (msg == BUILDER_MSG_STOP_BULK) {
+			std::cout << "Received Stop Bulk command for index " << index
+					<< std::endl;
 			CompletionTrieBuilder* builder = builders[index];
 			if (builder == nullptr) {
 				std::cerr

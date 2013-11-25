@@ -49,21 +49,9 @@ public:
 	static int GetInt(char* parameter);
 	static std::vector<int> GetIntList(char* parameter);
 	static std::vector<double> GetDoubleList(char* parameter);
-
 	static float GetFloat(char* parameter);
 
-	static void Save(void);
-	static void Save(std::string fileName);
-
 	static const std::type_info& GetOptionType(std::string key);
-
-	static void UpdateValue(std::string key, float f, bool notify = true);
-	static void UpdateValue(std::string key, std::string str,
-			bool notify = true);
-
-	static void Register(INotifiable* registrant) {
-		registeredUpdatables.push_back(registrant);
-	}
 
 	/*
 	 * Can be used to access all Descriptions
@@ -81,8 +69,6 @@ public:
 
 private:
 	static po::variables_map vm;
-	static std::vector<INotifiable*> registeredUpdatables;
-
 	/*
 	 * Notifies all registered objects for an option update
 	 */
