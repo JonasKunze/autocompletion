@@ -55,8 +55,8 @@ BuilderNode* CompletionTrieBuilder::createNode(BuilderNode* parent,
 }
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		root(createNode(nullptr, 0xFFFFFFFF, "")), suggestionStore(
-				std::make_shared<SuggestionStore>()) {
+		suggestionStore(std::make_shared<SuggestionStore>()) {
+	root = createNode(nullptr, 0xFFFFFFFF, "");
 }
 
 CompletionTrieBuilder::~CompletionTrieBuilder() {

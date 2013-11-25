@@ -102,49 +102,71 @@ void CompletionServer::builderThread() {
 	builders.clear();
 
 	while (1) {
+		/*
+		 * First message: Index
+		 */
 		uint64_t index;
 		while (zmq_recv(socket, &index, sizeof(index), 0) != sizeof(index)) {
 			std::cerr
 					<< "CompletionServer::builderThread: Unable to receive message"
 					<< std::endl;
 		}
-		uint8_t msg;
-		int64_t more;
-		zmq_recv(socket, &msg, sizeof(msg), 0);
 
-		if (msg == BUILDER_MSG_INSERT) {
+		/*
+		 * Second message: Message type
+		 */
+		uint8_t msgType;
+		int64_t more;
+		zmq_recv(socket, &msgType, sizeof(msgType), 0);
+
+		if (msgType == BUILDER_MSG_INSERT) {
 			do {
 				/*
-				 * Get Term
+				 * 3rd message: Term
 				 */
 				int dataSize = receiveString(socket, sizeof(dataBuffer),
 						dataBuffer);
 				std::string term(dataBuffer, dataSize);
 
 				/*
-				 * Get score
+				 * 4th message: Score
 				 */
 				uint32_t score;
 				zmq_recv(socket, &score, sizeof(score), 0);
 
 				/*
-				 * Get URI
+				 * 5th message: URI
 				 */
 				dataSize = receiveString(socket, sizeof(dataBuffer),
 						dataBuffer);
 				std::string URI(dataBuffer, dataSize);
 
 				/*
-				 * Get Image if there is one more part of the current multi-part message
+				 * 6th message: Image
+				 * Only read it if there is one more part of the
+				 * current multi-part message
 				 */
 				size_t more_size = sizeof more;
 				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
 
 				std::string image = "";
 				if (rc == 0 && more) {
-					dataSize = receiveString(socket, sizeof(dataBuffer),
-							dataBuffer);
-					image = std::string(dataBuffer, dataSize);
+					zmq_msg_t msg;
+					zmq_msg_init(&msg);
+					dataSize = zmq_recvmsg(socket, &msg, 0);
+//					zmq_msg_recv(&socket, socket, 0);
+//					dataSize = receiveString(socket, sizeof(dataBuffer),
+//							dataBuffer);
+					if (dataSize != -1) {
+						image = std::string((char*) zmq_msg_data(&msg),
+								dataSize);
+						std::cout << "Received image of length " << image.size()
+								<< std::endl;
+					} else {
+						std::cerr
+								<< "zmq_recvmsg returned -1 while trying to read image"
+								<< std::endl;
+					}
 				}
 				CompletionTrieBuilder* builder = builders[index];
 				if (builder == nullptr) {
@@ -153,17 +175,17 @@ void CompletionServer::builderThread() {
 							<< index << "!" << std::endl;
 				} else {
 					std::cout << "Adding Term " << term << "\t" << score << "\t"
-							<< image << "\t" << URI << std::endl;
+							<< URI << "\t" << image << std::endl;
 					builder->addString(term, score, image, URI);
 				}
 				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
 			} while (more);
 
-		} else if (msg == BUILDER_MSG_START_BULK) {
+		} else if (msgType == BUILDER_MSG_START_BULK) {
 			std::cout << "Received Start Bulk command for index " << index
 					<< std::endl;
 
-			if (builders.find(index)!=builders.end()) {
+			if (builders.find(index) != builders.end()) {
 				std::cerr << "Starting trie building of index " << index
 						<< " but a triBuilder already exists for this index! Will create a new one."
 						<< std::endl;
@@ -173,8 +195,7 @@ void CompletionServer::builderThread() {
 			CompletionTrieBuilder* builder = new CompletionTrieBuilder();
 			builders[index] = builder;
 			builder->print();
-			std::cout << builders[index] << "????" << std::endl;
-		} else if (msg == BUILDER_MSG_STOP_BULK) {
+		} else if (msgType == BUILDER_MSG_STOP_BULK) {
 			std::cout << "Received Stop Bulk command for index " << index
 					<< std::endl;
 			CompletionTrieBuilder* builder = builders[index];
