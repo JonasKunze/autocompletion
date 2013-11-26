@@ -54,9 +54,6 @@ void Options::Initialize(int argc, char* argv[]) {
 			po::value<std::string>()->default_value(DEFAUL_SETTINGS_FILE),
 			"Config file to be loaded defining these options")
 
-	(OPTION_LOAD_FILE, po::value<std::string>()->required(),
-			"Path to the file that should be loaded in a tsv format like term\tscore")
-
 			;
 
 	po::store(po::parse_command_line(argc, argv, desc), vm);

@@ -30,11 +30,7 @@
 #include "SuggestionList.h"
 
 CompletionServer::CompletionServer() :
-		builderThread_(&CompletionServer::builderThread, this), trie(nullptr) {
-}
-
-CompletionServer::CompletionServer(CompletionTrie* _trie) :
-		builderThread_(&CompletionServer::builderThread, this), trie(_trie) {
+		builderThread_(&CompletionServer::builderThread, this) {
 }
 
 CompletionServer::~CompletionServer() {
@@ -54,6 +50,9 @@ static std::string formatSuggestion(const Suggestion sugg) {
 
 std::string CompletionServer::generateResponse(const CompletionTrie* trie,
 		char* req, int requestLength) {
+	if (trie == nullptr) {
+		return "";
+	}
 	std::string request(req, requestLength);
 
 	std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(request,
@@ -112,7 +111,6 @@ void CompletionServer::builderThread() {
 		exit(1);
 	}
 
-	char dataBuffer[1024];
 	std::map<uint64_t, CompletionTrieBuilder*> builders;
 	builders.clear();
 
@@ -132,6 +130,7 @@ void CompletionServer::builderThread() {
 		 */
 		std::string msgType = receiveString(socket);
 		int64_t more;
+
 		if (msgType == BUILDER_MSG_INSERT) {
 			do {
 				/*
@@ -211,13 +210,28 @@ void CompletionServer::builderThread() {
 						<< index << "!" << std::endl;
 			} else {
 				builder->print();
-				if (this->trie != nullptr) {
-					CompletionTrie* tmp = this->trie;
-					this->trie = builder->generateCompletionTrie();
+
+				std::map<uint64_t, CompletionTrie*>::iterator lb =
+						trieByIndex.lower_bound(index);
+				if (lb != trieByIndex.end()
+						&& !(trieByIndex.key_comp()(index, lb->first))) {
+					/*
+					 * A trie with this index already exists -> overwrite it
+					 */
+					CompletionTrie* tmp = (*lb).second;
+					trieByIndex.insert(lb,
+							std::map<uint64_t, CompletionTrie*>::value_type(
+									index, builder->generateCompletionTrie()));
 					delete tmp;
 				} else {
-					this->trie = builder->generateCompletionTrie();
+					/*
+					 * The trie with this index didn't exist yet -> create it
+					 */
+					trieByIndex.insert(lb,
+							std::map<uint64_t, CompletionTrie*>::value_type(
+									index, builder->generateCompletionTrie()));
 				}
+
 				delete builder;
 				builders.erase(index);
 			}
@@ -252,18 +266,50 @@ void CompletionServer::start() {
 		int dataSize = receiveString(in_socket, sizeof(dataBuffer), dataBuffer);
 
 		if (strcmp(messageBuffer, "message") == 0) {
-			printf("message: %s\n", messageBuffer);
 			printf("data: %s\n", dataBuffer);
 
+			/*
+			 * Headers for the proxy
+			 */
 			zmq_send(out_socket, messageBuffer, messageSize, ZMQ_SNDMORE);
 			zmq_send(out_socket, &session_ID, sizeof(session_ID), ZMQ_SNDMORE);
 
-			std::string response = generateResponse(trie, dataBuffer, dataSize);
-			zmq_send(out_socket, response.c_str(), response.size(), 0);
+			std::map<uint64_t, uint64_t>::iterator sessionIndexPairIT =
+					indexBySession.lower_bound(session_ID);
+			if (sessionIndexPairIT != indexBySession.end()
+					&& !(indexBySession.key_comp()(session_ID,
+							sessionIndexPairIT->first))) {
+				/*
+				 * The session already exists in the map
+				 * Generate the actual data to be sent to the client by the proxy
+				 */
+				std::string response = generateResponse(
+						trieByIndex[(*sessionIndexPairIT).second], dataBuffer,
+						dataSize);
+				zmq_send(out_socket, response.c_str(), response.size(), 0);
+			} else {
+				/*
+				 * The Session does not yet exists in the map
+				 * The current message should contain the index
+				 */
+				if (dataSize != 8) {
+					std::cerr
+							<< "First message within new Session, which should contain the index, was not 8 byte long!"
+							<< dataSize << std::endl;
+				} else {
+					std::cout << "New Session accessing index "
+							<< reinterpret_cast<uint64_t>(dataBuffer)
+							<< " connected" << std::endl;
+					indexBySession.insert(sessionIndexPairIT,
+							std::map<uint64_t, uint64_t>::value_type(session_ID,
+									reinterpret_cast<uint64_t>(dataBuffer))); // Use sessionIndexPairIT as a hint to insert
+				}
+			}
+
 		} else if (strcmp(messageBuffer, "connect") == 0) {
-			printf("New client: %ld\n", session_ID);
+			indexBySession.erase(session_ID);
 		} else if (strcmp(messageBuffer, "disconnect") == 0) {
-			printf("Client disconnected: %ld\n", session_ID);
+			indexBySession.erase(session_ID);
 		}
 	}
 }

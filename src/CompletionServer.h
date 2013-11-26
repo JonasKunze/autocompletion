@@ -10,6 +10,7 @@
 
 #include <thread>
 #include <string>
+#include <map>
 
 #define BUILDER_ZMQ_PROTO "tcp"
 #define BUILDER_ZMQ_PORT "9243"
@@ -33,7 +34,10 @@ public:
 
 private:
 	std::thread builderThread_;
-	CompletionTrie* trie;
+	std::map<uint64_t, CompletionTrie*> trieByIndex;
+
+	std::map<uint64_t, uint64_t> indexBySession;
+
 	void builderThread();
 };
 
