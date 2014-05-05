@@ -12,9 +12,6 @@
 #include <string>
 #include <map>
 
-#define BUILDER_ZMQ_PROTO "tcp"
-#define BUILDER_ZMQ_PORT "9243"
-
 #define BUILDER_MSG_START_BULK "startBulk"
 #define BUILDER_MSG_INSERT  "addTerm"
 #define BUILDER_MSG_STOP_BULK  "stopBulk"
@@ -30,7 +27,7 @@ public:
 	std::string generateResponse(const CompletionTrie* trie, char* req,
 			int requestLength);
 
-	void start();
+	void run();
 
 private:
 	std::thread builderThread_;

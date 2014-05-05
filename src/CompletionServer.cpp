@@ -28,6 +28,7 @@
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "SuggestionList.h"
+#include "options/Options.h"
 
 CompletionServer::CompletionServer() :
 		builderThread_(&CompletionServer::builderThread, this) {
@@ -102,12 +103,11 @@ static std::string receiveString(void *socket) {
 void CompletionServer::builderThread() {
 	void *context = zmq_ctx_new();
 	void *socket = zmq_socket(context, ZMQ_PULL);
-	std::stringstream address;
-	address << BUILDER_ZMQ_PROTO << "://*:" << BUILDER_ZMQ_PORT;
-	int rc = zmq_bind(socket, address.str().c_str());
+	int rc = zmq_bind(socket,
+			Options::GetString(OPTION_ZMQ_LISTEN_ADDRESS).c_str());
 	if (rc != 0) {
-		std::cerr << "startBuilderThread: Unable to bind to " << address.str()
-				<< std::endl;
+		std::cerr << "startBuilderThread: Unable to bind to "
+				<< Options::GetString(OPTION_ZMQ_LISTEN_ADDRESS) << std::endl;
 		exit(1);
 	}
 
@@ -239,7 +239,7 @@ void CompletionServer::builderThread() {
 	}
 }
 
-void CompletionServer::start() {
+void CompletionServer::run() {
 	/*
 	 * Connect to pull and push socket of sockjsproxy
 	 */

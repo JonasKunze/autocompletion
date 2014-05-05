@@ -58,9 +58,9 @@ int main(int argc, char* argv[]) {
 //	PerformanceTest::runTest(trie);
 
 //	std::thread t(&interactiveThread, trie);
-//
+
 	CompletionServer server;
-	server.start();
+	server.run();
 
 	return 0;
 }

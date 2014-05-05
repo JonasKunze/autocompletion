@@ -1,8 +1,16 @@
 /*
- * Options.h
+ * Options.cpp
  *
  *  Created on: Nov 13, 2013
  *      Author: Jonas Kunze
+ *
+ *	After calling Options::Initialize all OPTION_* variables are accessible
+ *	via one of the available get-methods (e.g. GetString). The value of those
+ *	variables can be set by either a settings file or by calling the program
+ *	with --Variable=value. The latter will overwrite the settings from the file.
+ *
+ *	The default settings file is defined by DEFAUL_SETTINGS_FILE and can be
+ *	overwritten via calling the program with --configFile=/path/to/file
  */
 
 #ifndef OPTIONS_H_
@@ -21,17 +29,16 @@
 namespace po = boost::program_options;
 
 /*
- * Compile time options
- */
-#define MTU 1500
-#define LKR_SOURCE_ID 0x24
-
-/*
  * Static Options
  */
 #define OPTION_HELP (char*)"help"
 #define OPTION_VERBOSE (char*)"verbose"
 #define OPTION_CONFIG_FILE (char*)"configFile"
+
+/*
+ * ZMQ
+ */
+#define OPTION_ZMQ_LISTEN_ADDRESS (char*)"zmqListenAddress"
 
 class INotifiable;
 class Options {

@@ -3,6 +3,7 @@
  *
  *  Created on: Nov 13, 2013
  *      Author: Jonas Kunze
+ *
  */
 
 #include "Options.h"
@@ -15,8 +16,6 @@
 
 po::variables_map Options::vm;
 po::options_description Options::desc("Allowed options");
-
-#define DEFAUL_SETTINGS_FILE ".settings"
 
 /*
  * Configurable Variables
@@ -40,9 +39,7 @@ void Options::PrintVM(po::variables_map vm) {
 		std::cout << std::endl;
 	}
 }
-/**
- * The constructor must be public but should not be called! Use Instance() as factory Method instead.
- */
+
 void Options::Initialize(int argc, char* argv[]) {
 	desc.add_options()
 
@@ -50,9 +47,12 @@ void Options::Initialize(int argc, char* argv[]) {
 
 	(OPTION_VERBOSE, "Verbose mode")
 
-	(OPTION_CONFIG_FILE,
-			po::value<std::string>()->default_value(DEFAUL_SETTINGS_FILE),
+	(OPTION_CONFIG_FILE, po::value<std::string>()->default_value(".settings"),
 			"Config file to be loaded defining these options")
+
+	(OPTION_ZMQ_LISTEN_ADDRESS,
+			po::value<std::string>()->default_value("tcp://*:9243"),
+			"Address the zmq server should listen on")
 
 			;
 
