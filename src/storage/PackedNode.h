@@ -12,7 +12,7 @@
 #include <cstring>
 #include <string>
 
-#include "utils/Utils.h"
+#include "../utils/Utils.h"
 
 inline u_int8_t getNumberOfBytesToStore(u_int32_t i) {
 	return i == 0 ? 0 : i < (1 << 8) ? 1 : i < (1 << 16) ? 2 :

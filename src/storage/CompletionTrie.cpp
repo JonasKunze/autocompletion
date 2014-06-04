@@ -12,10 +12,10 @@
 #include <iostream>
 #include <iterator>
 
-#include "options/Options.h"
+#include "../options/Options.h"
 #include "SuggestionList.h"
 #include "SuggestionStore.h"
-#include "utils/Utils.h"
+#include "../utils/Utils.h"
 
 struct NodeWithScoreStoreComparator {
 	bool operator()(const NodeWithRelativeScoreStore left,

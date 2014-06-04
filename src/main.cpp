@@ -10,12 +10,12 @@
 #include <memory>
 #include <string>
 
-#include "CompletionServer.h"
-#include "CompletionTrie.h"
-#include "CompletionTrieBuilder.h"
+#include "storage/CompletionTrie.h"
+#include "storage/CompletionTrieBuilder.h"
 #include "options/Options.h"
-#include "SuggestionList.h"
+#include "storage/SuggestionList.h"
 #include "utils/Utils.h"
+#include "server/CompletionServer.h"
 
 using namespace std;
 

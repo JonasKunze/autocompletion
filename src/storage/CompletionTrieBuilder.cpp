@@ -18,10 +18,10 @@
 
 #include "BuilderNode.h"
 #include "CompletionTrie.h"
-#include "options/Options.h"
+#include "../options/Options.h"
 #include "PackedNode.h"
 #include "SuggestionStore.h"
-#include "utils/Utils.h"
+#include "../utils/Utils.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
 

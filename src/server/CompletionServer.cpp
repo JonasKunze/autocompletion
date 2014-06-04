@@ -24,11 +24,10 @@
 #include <string>
 #include <thread>
 
-//#include "BuilderNode.h"
-#include "CompletionTrie.h"
-#include "CompletionTrieBuilder.h"
-#include "SuggestionList.h"
-#include "options/Options.h"
+#include "../storage/CompletionTrie.h"
+#include "../storage/CompletionTrieBuilder.h"
+#include "../storage/SuggestionList.h"
+#include "../options/Options.h"
 
 CompletionServer::CompletionServer() :
 		builderThread_(&CompletionServer::builderThread, this) {
@@ -85,9 +84,6 @@ static int receiveString(void *socket, const unsigned short length,
 }
 
 static std::string receiveString(void *socket) {
-//	char buff[1024];
-//	int length = receiveString(socket, sizeof(buff), buff);
-//	return std::string(buff, length);
 	zmq_msg_t msg;
 	zmq_msg_init(&msg);
 	int dataSize = zmq_recvmsg(socket, &msg, 0);
@@ -158,7 +154,6 @@ void CompletionServer::builderThread() {
 				size_t more_size = sizeof more;
 				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
 			} while (more);
-
 		} else if (msgType == BUILDER_MSG_START_BULK) {
 			std::cout << "Received Start Bulk command for index " << index
 					<< std::endl;
