@@ -18,8 +18,7 @@ class SuggestionStore;
 struct Suggestion {
 	std::string suggestion;
 	u_int32_t relativeScore;
-	std::string URI;
-	std::string image;
+	std::string additionalData;
 };
 
 struct SuggestionList {
@@ -38,8 +37,6 @@ struct SuggestionList {
 	}
 
 	void addSuggestion(NodeWithRelativeScoreStore nodeWithParent);
-
-	void addSuggestionWithImage(NodeWithRelativeScoreStore nodeWithParent);
 
 	inline bool isFull() const {
 		return suggestedWords.size() == k;

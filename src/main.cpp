@@ -37,7 +37,7 @@ void interactiveThread(const CompletionTrie* trie) {
 
 		for (Suggestion sugg : suggestions->suggestedWords) {
 			std::cout << sugg.suggestion << "\t" << sugg.relativeScore << "\t"
-					<< sugg.image << std::endl;
+					<< sugg.additionalData << std::endl;
 		}
 	} while (true);
 }

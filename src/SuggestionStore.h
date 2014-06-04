@@ -20,15 +20,6 @@
 
 class PackedNode;
 
-struct ImageAndURI {
-	std::string URI;
-	std::string image;
-};
-
-struct ImageAndURIComparator {
-	bool operator()(const ImageAndURI& left, const ImageAndURI& right);
-};
-
 class SuggestionStore {
 private:
 	/*
@@ -41,13 +32,7 @@ private:
 	 * images and URIs by (u_int64_t)node where node is PackedNode*
 	 *
 	 */
-	std::unordered_map<u_int64_t, const ImageAndURI*> imagesAndURIsByNode;
-
-	/*
-	 * This set is used to have only one struct per unique URI.
-	 * One URI with several Images is not allowed.
-	 */
-	std::set<ImageAndURI, ImageAndURIComparator> imagesAndURIs;
+	std::unordered_map<u_int64_t, std::string> dataByNode;
 
 public:
 	SuggestionStore() :
@@ -61,10 +46,10 @@ public:
 		return std::make_shared < SuggestionList > (k, this);
 	}
 
-	void addTerm(PackedNode* node, std::string URI, std::string image);
+	void addTerm(PackedNode* node, std::string additionalData);
 
-	const ImageAndURI* getImageAndURI(PackedNode* node) {
-		return imagesAndURIsByNode[reinterpret_cast<u_int64_t>(node)
+	const std::string getAdditionalData(PackedNode* node) {
+		return dataByNode[reinterpret_cast<u_int64_t>(node)
 				+ pointerMovedDelta];
 	}
 

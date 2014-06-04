@@ -25,38 +25,37 @@ struct BuilderNodeComparator {
 class BuilderNode {
 
 public:
-	u_int32_t score;
+	u_int32_t score_;
 	BuilderNode* parent;
-	bool isLastSibbling;
+	bool isLastSibbling_;
 
-	std::string suffix;
+	std::string suffix_;
 	std::set<BuilderNode*, BuilderNodeComparator> children;
 	u_int16_t trieLayer;
 
 	/*
 	 * The absolute pointer to the firstChild. Use this while writing this node to calculate the offset
 	 */
-	u_int32_t firstChildPointer;
+	u_int32_t firstChildPointer_;
 
-	std::string URI;
-	std::string image;
+	std::string additionalData_;
 
 	BuilderNode(BuilderNode* parent, u_int32_t score, std::string _suffix);
 	BuilderNode() :
-			score(0), parent(nullptr), isLastSibbling(false), trieLayer(0), firstChildPointer(
-					0), URI(""), image("") {
+			score_(0), parent(nullptr), isLastSibbling_(false), trieLayer(0), firstChildPointer_(
+					0), additionalData_(""){
 	}
 	virtual ~BuilderNode();
 
 	void addChild(BuilderNode* child);
 
 	u_int32_t calculatePackedNodeSize(u_int32_t nodePointer) {
-		return PackedNode::calculateSize(suffix.length(), getDeltaScore(),
-				firstChildPointer != 0 ? firstChildPointer - nodePointer : 0);
+		return PackedNode::calculateSize(suffix_.length(), getDeltaScore(),
+				firstChildPointer_ != 0 ? firstChildPointer_ - nodePointer : 0);
 	}
 
 	inline u_int32_t getDeltaScore() const {
-		return parent != nullptr ? parent->score - score : 0xFFFFFFFF - score;
+		return parent != nullptr ? parent->score_ - score_ : 0xFFFFFFFF - score_;
 	}
 
 	inline bool isLeafNode() {
@@ -75,8 +74,8 @@ public:
 		this->parent = parent;
 
 		if (parent != nullptr) {
-			if (score > parent->score) {
-				parent->updateChildScore(score);
+			if (score_ > parent->score_) {
+				parent->updateChildScore(score_);
 			}
 			trieLayer = parent->trieLayer + 1;
 			for (BuilderNode* child : children) {
@@ -94,17 +93,14 @@ public:
 		}
 	}
 
-	inline void setImage(std::string image) {
-		this->image = image;
+	inline void setAdditionalData(std::string image) {
+		this->additionalData_ = image;
 	}
 
-	inline void setURI(std::string URI) {
-		this->URI = URI;
-	}
 
 	void updateChildScore(u_int32_t childScore) {
-		if (childScore >score) {
-			score = childScore;
+		if (childScore >score_) {
+			score_ = childScore;
 			if(parent != nullptr){
 				parent->updateChildScore(childScore);
 			}

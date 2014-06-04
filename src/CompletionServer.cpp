@@ -39,13 +39,8 @@ CompletionServer::~CompletionServer() {
 
 static std::string formatSuggestion(const Suggestion sugg) {
 	std::stringstream ss;
-	ss << "{\"suggestion\":\"" << sugg.suggestion << "\",\"key\":\"" << sugg.URI
-			<< "\"";
-	if (sugg.image.length() != 0) {
-		ss << ",\"image\":\"" << sugg.image << "\"}";
-	} else {
-		ss << "}";
-	}
+	ss << "{\"suggestion\":\"" << sugg.suggestion << ",\"data\":\""
+			<< sugg.additionalData << "\"}";
 	return ss.str();
 }
 
@@ -145,44 +140,22 @@ void CompletionServer::builderThread() {
 				zmq_recv(socket, &score, sizeof(score), 0);
 
 				/*
-				 * 5th message: URI
+				 * 5th message: additional data to be stored
 				 */
-				std::string URI = receiveString(socket);
+				std::string additionalData = receiveString(socket);
 
-				/*
-				 * 6th message: Image
-				 * Only read it if there is one more part of the
-				 * current multi-part message
-				 */
-				size_t more_size = sizeof more;
-				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
-
-				std::string image = "";
-				if (rc == 0 && more) {
-					zmq_msg_t msg;
-					zmq_msg_init(&msg);
-					int dataSize = zmq_recvmsg(socket, &msg, 0);
-					if (dataSize != -1) {
-						image = std::string((char*) zmq_msg_data(&msg),
-								dataSize);
-						std::cout << "Received image of length " << image.size()
-								<< std::endl;
-					} else {
-						std::cerr
-								<< "zmq_recvmsg returned -1 while trying to read image"
-								<< std::endl;
-					}
-				}
 				CompletionTrieBuilder* builder = builders[index];
+
 				if (builder == nullptr) {
 					std::cerr
 							<< "Trying to add term but no CompletionTrieBuilder exists for index "
 							<< index << "!" << std::endl;
 				} else {
 					std::cout << "Adding Term " << term << "\t" << score << "\t"
-							<< URI << "\t" << image << std::endl;
-					builder->addString(term, score, image, URI);
+							<< additionalData << std::endl;
+					builder->addString(term, score, additionalData);
 				}
+				size_t more_size = sizeof more;
 				rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &more_size);
 			} while (more);
 

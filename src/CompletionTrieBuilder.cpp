@@ -36,13 +36,13 @@ bool BuilderNodeLayerComparator::operator()(const BuilderNode* left,
 //	return l1 < 0;
 
 	if (left->getTrieLayer() == right->getTrieLayer()) {
-		if (left->parent->score == right->parent->score) {
+		if (left->parent->score_ == right->parent->score_) {
 			if (left->parent == right->parent) {
-				return left->score > right->score;
+				return left->score_ > right->score_;
 			}
 			return left->parent < right->parent;
 		}
-		return left->parent->score > right->parent->score;
+		return left->parent->score_ > right->parent->score_;
 	}
 	return left->getTrieLayer() < right->getTrieLayer();
 }
@@ -105,8 +105,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	 * Fill the Builder with all terms from the file
 	 */
 	for (auto nodeValue : nodeValues) {
-		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first,
-				nodeValue.first);
+		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first);
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
@@ -150,7 +149,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 		 */
 		if (node->parent != lastParent) {
 			lastParent = node->parent;
-			node->isLastSibbling = true;
+			node->isLastSibbling_ = true;
 		}
 
 		u_int32_t nodeSize = node->calculatePackedNodeSize(memPointer);
@@ -163,25 +162,19 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 		memPointer -= nodeSize;
 
-		u_int32_t deltaScore =
-				node->parent != nullptr ?
-						node->parent->score - node->score :
-						0xFFFFFFFF - node->score;
-		std::cout << node->suffix << "\t" << "\t" << node->score << "\t"
-				<< deltaScore << std::endl;
 		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
-				node->suffix.length(), node->suffix.c_str(),
-				node->isLastSibbling, node->getDeltaScore(),
-				node->firstChildPointer == 0 ?
-						0 : node->firstChildPointer - memPointer);
-		suggestionStore->addTerm(pNode, node->URI, node->image);
+				node->suffix_.length(), node->suffix_.c_str(),
+				node->isLastSibbling_, node->getDeltaScore(),
+				node->firstChildPointer_ == 0 ?
+						0 : node->firstChildPointer_ - memPointer);
+		suggestionStore->addTerm(pNode, node->additionalData_);
 
 		/*
 		 * Update firstChildPointer every time. As we come from the right side the last
 		 * update will be the real first child
 		 */
 		if (node->parent != nullptr) { // Root node does not have a parent
-			node->parent->firstChildPointer = memPointer;
+			node->parent->firstChildPointer_ = memPointer;
 		}
 	}
 
@@ -199,7 +192,7 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 }
 
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
-		std::string image, std::string URI) {
+		std::string additionalData) {
 	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 
 	unsigned short numberOfCharsFound = 0;
@@ -213,17 +206,17 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	 * If the searched term is longer than the string defined by the current parent node
 	 */
 	if (parent != root && charsRemainingForLastNode > 0
-			&& parent->suffix.length() != 1
-			&& charsRemainingForLastNode < parent->suffix.length()) {
+			&& parent->suffix_.length() != 1
+			&& charsRemainingForLastNode < parent->suffix_.length()) {
 
 		if (numberOfCharsFound == str.length()
-				&& parent->suffix.length()
+				&& parent->suffix_.length()
 						== static_cast<uint>(charsRemainingForLastNode + 1)) {
 			/*
 			 * E.g. we've added XXXabc and than XXXa. In this case we should not split abc but
 			 * add a to abc's parent XXX
 			 */
-			numberOfCharsFound -= parent->suffix.length()
+			numberOfCharsFound -= parent->suffix_.length()
 					- charsRemainingForLastNode;
 			locus.pop();
 			parent = locus.top();
@@ -232,7 +225,7 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 			 * Here we found more than one char but not all of parent are identical
 			 */
 			splitNode(parent,
-					parent->suffix.length() - charsRemainingForLastNode);
+					parent->suffix_.length() - charsRemainingForLastNode);
 
 		}
 	}
@@ -242,14 +235,14 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	 */
 	if (parent->isLeafNode() && charsRemainingForLastNode == 0
 			&& parent != root) {
-		if (parent->suffix.length() != 1) {
-			splitNode(parent, parent->suffix.length() - 1);
+		if (parent->suffix_.length() != 1) {
+			splitNode(parent, parent->suffix_.length() - 1);
 			numberOfCharsFound--;
 		} else {
 			/*
 			 * parent is a non splittable leaf node -> take its parent instead
 			 */
-			numberOfCharsFound -= parent->suffix.length();
+			numberOfCharsFound -= parent->suffix_.length();
 			locus.pop();
 			parent = locus.top();
 		}
@@ -265,8 +258,7 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 			parent = child;
 			prefix = prefix.substr(MAXIMUM_PREFIX_SIZE);
 		} else {
-			child->setImage(image);
-			child->setURI(URI);
+			child->setAdditionalData(additionalData);
 			break;
 		}
 	}
@@ -274,10 +266,10 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 
 void CompletionTrieBuilder::splitNode(BuilderNode* node,
 		unsigned char splitPos) {
-	std::string secondSuffix = node->suffix.substr(splitPos);
-	BuilderNode* secondNode = createNode(node, node->score, secondSuffix);
+	std::string secondSuffix = node->suffix_.substr(splitPos);
+	BuilderNode* secondNode = createNode(node, node->score_, secondSuffix);
 
-	node->suffix = node->suffix.substr(0, splitPos);
+	node->suffix_ = node->suffix_.substr(0, splitPos);
 
 	/*
 	 * Move children from the original node to the second node
@@ -285,8 +277,7 @@ void CompletionTrieBuilder::splitNode(BuilderNode* node,
 	secondNode->children = node->children;
 	node->children.clear();
 	node->addChild(secondNode);
-	secondNode->setImage(node->image);
-	secondNode->setURI(node->URI);
+	secondNode->setAdditionalData(node->additionalData_);
 
 	for (BuilderNode* child : secondNode->children) {
 		child->setParent(secondNode);
@@ -309,11 +300,11 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 
 	restart: for (BuilderNode* node : parent->children) {
 		short lastFitPos = Utils::findFirstNonMatchingCharacter(
-				std::move(node->suffix.c_str()),
+				std::move(node->suffix_.c_str()),
 				std::move(remainingPrefix.c_str())) - 1;
 
-		if (lastFitPos != -1 && lastFitPos >= (short) node->suffix.length()) {
-			lastFitPos = node->suffix.length() - 1;
+		if (lastFitPos != -1 && lastFitPos >= (short) node->suffix_.length()) {
+			lastFitPos = node->suffix_.length() - 1;
 		} else if (lastFitPos != -1
 				&& lastFitPos >= (short) remainingPrefix.length()) {
 			lastFitPos = remainingPrefix.length() - 1;
@@ -326,7 +317,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 			/*
 			 * Ignore leaf nodes with only one character
 			 */
-			if (node->suffix.size() == 1 && node->isLeafNode()) {
+			if (node->suffix_.size() == 1 && node->isLeafNode()) {
 				if (remainingPrefix.length() == 1) {
 					numberOfCharsFound = 1;
 					resultLocus.push(node);
@@ -345,7 +336,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 	 * with the longest suffix found being `nextParent`
 	 */
 	if (nextParent != nullptr) {
-		charsRemainingForLastNode = nextParent->suffix.length()
+		charsRemainingForLastNode = nextParent->suffix_.length()
 				- nextParentsLastFitPos - 1;
 		resultLocus.push(nextParent);
 
@@ -354,7 +345,7 @@ std::stack<BuilderNode*> CompletionTrieBuilder::findLocus(
 		remainingPrefix = remainingPrefix.substr(nextParentsLastFitPos + 1);
 		if (remainingPrefix.size() == 0
 				|| static_cast<u_int32_t>(nextParentsLastFitPos + 1)
-						!= nextParent->suffix.length()) {
+						!= nextParent->suffix_.length()) {
 			return resultLocus;
 		}
 		parent = nextParent;
@@ -381,8 +372,8 @@ void CompletionTrieBuilder::print() {
 
 	std::cout << "================" << std::endl;
 	for (BuilderNode* node : allNodes) {
-		std::cout << node->suffix << "\t" << node->trieLayer << "\t"
-				<< node->isLastSibbling << "\t" << node->score << std::endl;
+		std::cout << node->suffix_ << "\t" << node->trieLayer << "\t"
+				<< node->isLastSibbling_ << "\t" << node->score_ << std::endl;
 	}
 	std::cout << "========CompletionTrieBuilder::print END========"
 			<< std::endl;
@@ -401,15 +392,15 @@ void CompletionTrieBuilder::printNode(BuilderNode* parent,
 		}
 		locus.pop_back();
 
-		if (parent->suffix.length() == 0) {
+		if (parent->suffix_.length() == 0) {
 			/*
 			 * the root element
 			 */
 			std::cout << "ROOT";
 		} else {
-			std::cout << parent->suffix;
+			std::cout << parent->suffix_;
 		}
-		std::cout << " -- " << child->suffix << " : " << child->score
+		std::cout << " -- " << child->suffix_ << " : " << child->score_
 				<< std::endl;
 	}
 }

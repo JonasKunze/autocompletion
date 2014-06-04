@@ -54,7 +54,7 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 
 	if (node == root || node == nullptr) {
 		for (NodeWithRelativeScoreStore n : fittingLeafNodes) {
-			suggestions->addSuggestionWithImage(n);
+			suggestions->addSuggestion(n);
 		}
 		return suggestions;
 	}
@@ -74,7 +74,7 @@ std::shared_ptr<SuggestionList> CompletionTrie::getSuggestions(std::string term,
 //		std::cout << nodeWithParentScore.getString() << std::endl;
 
 		if (nodeWithParentScore.node->isLeafNode()) {
-			suggestions->addSuggestionWithImage(nodeWithParentScore);
+			suggestions->addSuggestion(nodeWithParentScore);
 			if (suggestions->isFull()) {
 				return suggestions;
 			}
@@ -202,27 +202,27 @@ void CompletionTrie::print() const {
 	if (!Options::VERBOSE) {
 		return;
 	}
-	std::cout << "============ CompletionTrie ============" << std::endl;
-	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
-			+ root->getFirstChildOffset();
-	int layer = 0;
-
-	std::cout << "Name\tsize\tdeltaScore\t\tfirstChild\tLayer"<<std::endl;
-	do {
-		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
-		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
-				+ node->getFirstChildOffset());
-
-		std::cout << node->getString() << "\t" << (int) node->getSize() << "\t"
-				<< (int) (u_int8_t) (node->getDeltaScore()) << "\t" << "\t"
-				<< firstChild->getString() << "\t" << layer << std::endl;
-
-		if (node->isLastSibling_) {
-			layer++;
-		}
-
-		node_ptr += node->getSize();
-	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize - 8/*safety margin*/);
+//	std::cout << "============ CompletionTrie ============" << std::endl;
+//	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
+//			+ root->getFirstChildOffset();
+//	int layer = 0;
+//
+//	std::cout << "Name\tsize\tdeltaScore\t\tfirstChild\tLayer"<<std::endl;
+//	do {
+//		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
+//		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr
+//				+ node->getFirstChildOffset());
+//
+//		std::cout << node->getString() << "\t" << (int) node->getSize() << "\t"
+//				<< (int) (u_int8_t) (node->getDeltaScore()) << "\t" << "\t"
+//				<< firstChild->getString() << "\t" << layer << std::endl;
+//
+//		if (node->isLastSibling_) {
+//			layer++;
+//		}
+//
+//		node_ptr += node->getSize();
+//	} while (node_ptr < reinterpret_cast<u_int64_t>(mem) + memSize - 8/*safety margin*/);
 
 	std::vector<PackedNode*> locus;
 	std::cout << "graph completionTrie {" << std::endl;
@@ -259,8 +259,7 @@ void CompletionTrie::printNode(PackedNode* parent,
 					<< std::string(parent->getCharacters(),
 							parent->charactersSize_);
 		}
-		std::cout << " -- " << child->getString() << "\t"
-				<< child->getDeltaScore() << std::endl;
+		std::cout << " -- " << child->getString() << "[ label = \""<< child->getDeltaScore() <<"\" ];" << std::endl;
 
 		if (child->isLastSibling_) {
 			break;

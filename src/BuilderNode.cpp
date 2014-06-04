@@ -9,17 +9,17 @@
 
 bool BuilderNodeComparator::operator()(const BuilderNode* left,
 		const BuilderNode* right) {
-	if (left->score == right->score) {
-		return left->suffix < right->suffix;
+	if (left->score_ == right->score_) {
+		return left->suffix_ < right->suffix_;
 	}
-	return left->score < right->score;
+	return left->score_ < right->score_;
 }
 
-BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _score,
+BuilderNode::BuilderNode(BuilderNode* parent, u_int32_t score,
 		const std::string _suffix) :
-		score(_score), isLastSibbling(false), suffix(_suffix), firstChildPointer(
-				0), URI(""), image("") {
-	setParent(_parent);
+		score_(score), isLastSibbling_(false), suffix_(_suffix), firstChildPointer_(
+				0), additionalData_("") {
+	setParent(parent);
 }
 
 BuilderNode::~BuilderNode() {
