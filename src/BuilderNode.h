@@ -71,17 +71,12 @@ public:
 		return parent == nullptr;
 	}
 
-//	inline BuilderNode* getParent() const {
-//		return parent;
-//	}
-
 	void setParent(BuilderNode* parent) {
 		this->parent = parent;
 
 		if (parent != nullptr) {
-			trieLayer = parent->trieLayer + 1;
 			if (score > parent->score) {
-				parent->score = score;
+				parent->updateChildScore(score);
 			}
 			trieLayer = parent->trieLayer + 1;
 			for (BuilderNode* child : children) {
@@ -107,12 +102,13 @@ public:
 		this->URI = URI;
 	}
 
-	void setScore(u_int32_t score) {
-		if (parent != nullptr && score > parent->score) {
-			parent->score = score;
+	void updateChildScore(u_int32_t childScore) {
+		if (childScore >score) {
+			score = childScore;
+			if(parent != nullptr){
+				parent->updateChildScore(childScore);
+			}
 		}
-
-		this->score = score;
 	}
 };
 

@@ -206,6 +206,8 @@ void CompletionTrie::print() const {
 	u_int64_t node_ptr = reinterpret_cast<u_int64_t>(root)
 			+ root->getFirstChildOffset();
 	int layer = 0;
+
+	std::cout << "Name\tsize\tdeltaScore\t\tfirstChild\tLayer"<<std::endl;
 	do {
 		PackedNode* node = reinterpret_cast<PackedNode*>(node_ptr);
 		PackedNode* firstChild = reinterpret_cast<PackedNode*>(node_ptr

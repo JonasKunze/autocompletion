@@ -54,6 +54,9 @@ void Options::Initialize(int argc, char* argv[]) {
 			po::value<std::string>()->default_value("tcp://*:9243"),
 			"Address the zmq server should listen on")
 
+	(OPTION_LOAD_FILE, po::value<std::string>(),
+			"File storing terms to be loaded at startup")
+
 			;
 
 	po::store(po::parse_command_line(argc, argv, desc), vm);

@@ -46,6 +46,14 @@ private:
 	BuilderNode* createNode(BuilderNode* parent, u_int32_t score,
 			std::string _suffix);
 
+	/*
+	 * Reads a file which must consist of lines with following format:
+	 * $term\t$score\n
+	 *
+	 * For each line a pair of string (term) and int (score) is returned pooled in a vector
+	 */
+	static std::vector<std::pair<std::string, int> > readFile(	const std::string fileName);
+
 	/**
 	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned
 	 * will never be leaf nodes with only one character

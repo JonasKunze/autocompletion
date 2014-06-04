@@ -35,6 +35,9 @@ namespace po = boost::program_options;
 #define OPTION_VERBOSE (char*)"verbose"
 #define OPTION_CONFIG_FILE (char*)"configFile"
 
+#define OPTION_LOAD_FILE (char*)"loadFile"
+
+
 /*
  * ZMQ
  */

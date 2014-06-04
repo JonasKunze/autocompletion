@@ -6,20 +6,14 @@
 // Description : Main method of the autocompletion service
 //============================================================================
 
-//#include <cstring>
-
-//#include <deque>
-
-#include <ctime>
 #include <iostream>
+#include <memory>
 #include <string>
-#include <thread>
 
 #include "CompletionServer.h"
 #include "CompletionTrie.h"
 #include "CompletionTrieBuilder.h"
 #include "options/Options.h"
-#include "PerformanceTest.h"
 #include "SuggestionList.h"
 #include "utils/Utils.h"
 
@@ -37,7 +31,7 @@ void interactiveThread(const CompletionTrie* trie) {
 
 		long start = Utils::getCurrentMicroSeconds();
 		std::shared_ptr<SuggestionList> suggestions = trie->getSuggestions(str,
-				10);
+				12);
 		long time = Utils::getCurrentMicroSeconds() - start;
 		std::cout << time << " us for finding suggestions" << std::endl;
 
@@ -47,18 +41,21 @@ void interactiveThread(const CompletionTrie* trie) {
 		}
 	} while (true);
 }
+
 int main(int argc, char* argv[]) {
 	Options::Initialize(argc, argv);
 
-//	CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
-//			Options::GetString(OPTION_LOAD_FILE));
+	if (Options::Isset(OPTION_LOAD_FILE)) {
+		CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
+				Options::GetString(OPTION_LOAD_FILE));
 
-//	trie->print();
+		trie->print();
 
-//	PerformanceTest::runTest(trie);
+		//	PerformanceTest::runTest(trie);
+		interactiveThread(trie);
+	}
 
 //	std::thread t(&interactiveThread, trie);
-
 	CompletionServer server;
 	server.run();
 

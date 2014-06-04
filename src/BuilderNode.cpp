@@ -17,7 +17,7 @@ bool BuilderNodeComparator::operator()(const BuilderNode* left,
 
 BuilderNode::BuilderNode(BuilderNode* _parent, u_int32_t _score,
 		const std::string _suffix) :
-		score(_score), parent(_parent), isLastSibbling(false), suffix(_suffix), firstChildPointer(
+		score(_score), isLastSibbling(false), suffix(_suffix), firstChildPointer(
 				0), URI(""), image("") {
 	setParent(_parent);
 }

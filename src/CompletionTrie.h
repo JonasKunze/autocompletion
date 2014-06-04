@@ -46,10 +46,6 @@ public:
 			std::shared_ptr<SuggestionStore> _suggestionStore);
 	virtual ~CompletionTrie();
 
-	void addTerm(const std::string term, const u_int32_t score);
-	std::deque<PackedNode*> findLocusWithSubstr(const std::string term,
-			bool& return_foundTerm);
-
 	/**
 	 * Returns the Node that defines the longest string that has term as substring
 	 *

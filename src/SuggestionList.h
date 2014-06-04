@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-//#include "CompletionTrie.h"
-
 struct NodeWithRelativeScoreStore;
 
 class SuggestionStore;

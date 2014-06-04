@@ -65,7 +65,7 @@ CompletionTrieBuilder::~CompletionTrieBuilder() {
 	}
 }
 
-static std::vector<std::pair<std::string, int> > readFile(
+std::vector<std::pair<std::string, int> > CompletionTrieBuilder::readFile(
 		const std::string fileName) {
 	std::vector<std::pair<std::string, int> > nodes;
 	std::ifstream myReadFile;
@@ -101,6 +101,9 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 
 	start = Utils::getCurrentMicroSeconds();
 
+	/*
+	 * Fill the Builder with all terms from the file
+	 */
 	for (auto nodeValue : nodeValues) {
 		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first,
 				nodeValue.first);
@@ -160,12 +163,17 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 
 		memPointer -= nodeSize;
 
+		u_int32_t deltaScore =
+				node->parent != nullptr ?
+						node->parent->score - node->score :
+						0xFFFFFFFF - node->score;
+		std::cout << node->suffix << "\t" << "\t" << node->score << "\t"
+				<< deltaScore << std::endl;
 		PackedNode* pNode = PackedNode::createNode(mem + memPointer,
 				node->suffix.length(), node->suffix.c_str(),
 				node->isLastSibbling, node->getDeltaScore(),
 				node->firstChildPointer == 0 ?
 						0 : node->firstChildPointer - memPointer);
-
 		suggestionStore->addTerm(pNode, node->URI, node->image);
 
 		/*
@@ -204,8 +212,6 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	/*
 	 * If the searched term is longer than the string defined by the current parent node
 	 */
-//	if (parent != root && parent->suffix.length() != 1
-//			&& charsRemainingForLastNode < parent->suffix.length()) {
 	if (parent != root && charsRemainingForLastNode > 0
 			&& parent->suffix.length() != 1
 			&& charsRemainingForLastNode < parent->suffix.length()) {
@@ -223,9 +229,8 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 			parent = locus.top();
 		} else {
 			/*
-			 * Here we found more than one char but not all of parent
+			 * Here we found more than one char but not all of parent are identical
 			 */
-
 			splitNode(parent,
 					parent->suffix.length() - charsRemainingForLastNode);
 
