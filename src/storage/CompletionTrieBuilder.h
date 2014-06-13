@@ -40,7 +40,7 @@ public:
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);
 
 	float getAverageWordLength() {
-		return numberOfCharsStored / allNodes.size();
+		return numberOfCharsStored / (float)allNodes.size();
 	}
 
 	size_t getNumberOfTerms() {

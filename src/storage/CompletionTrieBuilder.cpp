@@ -155,7 +155,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	std::cout << "Average word length: " << builder.getAverageWordLength()
 			<< std::endl;
 	std::cout << "Average Bytes per word: "
-			<< trie->getMemoryConsumption() / builder.getNumberOfTerms()
+			<< trie->getMemoryConsumption() / (float)builder.getNumberOfTerms()
 			<< std::endl;
 	return trie;
 }
