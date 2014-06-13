@@ -30,7 +30,6 @@ private:
 
 	/*
 	 * images and URIs by (u_int64_t)node where node is PackedNode*
-	 *
 	 */
 	std::unordered_map<u_int64_t, std::string> dataByNode;
 

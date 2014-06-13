@@ -53,9 +53,11 @@ int main(int argc, char* argv[]) {
 
 		//	PerformanceTest::runTest(trie);
 		interactiveThread(trie);
+
+		std::thread t(&interactiveThread, trie);
 	}
 
-//	std::thread t(&interactiveThread, trie);
+
 	CompletionServer server;
 	server.run();
 

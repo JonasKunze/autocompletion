@@ -15,6 +15,9 @@
 #include <string>
 #include <vector>
 
+#include "BuilderNode.h"
+#include "SuggestionList.h"
+
 class BuilderNode;
 
 class SuggestionStore;
@@ -47,11 +50,10 @@ private:
 
 	/*
 	 * Reads a file which must consist of lines with following format:
-	 * $term\t$score\n
+	 * $score\t$term\t$additionalDataMayContainTabs\n
 	 *
-	 * For each line a pair of string (term) and int (score) is returned pooled in a vector
 	 */
-	static std::vector<std::pair<std::string, int> > readFile(	const std::string fileName);
+	static std::vector<Suggestion> readFile(	const std::string fileName);
 
 	/**
 	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned

@@ -11,17 +11,19 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <set>
 #include <utility>
 
+#include "../options/Options.h"
+#include "../utils/Utils.h"
 #include "BuilderNode.h"
 #include "CompletionTrie.h"
-#include "../options/Options.h"
 #include "PackedNode.h"
+#include "SuggestionList.h"
 #include "SuggestionStore.h"
-#include "../utils/Utils.h"
 
 #define MAXIMUM_PREFIX_SIZE 7
 
@@ -65,9 +67,10 @@ CompletionTrieBuilder::~CompletionTrieBuilder() {
 	}
 }
 
-std::vector<std::pair<std::string, int> > CompletionTrieBuilder::readFile(
+std::vector<Suggestion> CompletionTrieBuilder::readFile(
 		const std::string fileName) {
-	std::vector<std::pair<std::string, int> > nodes;
+	std::vector<Suggestion> nodes;
+
 	std::ifstream myReadFile;
 	myReadFile.open(fileName);
 	if (myReadFile.fail()) {
@@ -76,14 +79,35 @@ std::vector<std::pair<std::string, int> > CompletionTrieBuilder::readFile(
 	}
 
 	if (myReadFile.is_open()) {
-		while (!myReadFile.eof()) {
-			std::string term;
-			u_int32_t score;
+		std::istringstream lin;
+		// Read line by line
+		for (std::string line; std::getline(myReadFile, line);) {
+			lin.clear();
+			lin.str(line);
+			std::string item;
+			// Split line at each \t
+			std::vector<std::string> elems;
+			while (std::getline(lin, item, '\t')) {
+				elems.push_back(item);
+			}
 
-			std::getline(myReadFile, term, '\t'); // Read including whitespace
-			myReadFile >> score;
-			nodes.push_back(std::make_pair(term, score));
-			std::getline(myReadFile, term, '\n');
+			if (elems.size() < 3) {
+				std::cerr << "Badly formated line in file: " << line
+						<< std::endl;
+				exit(1);
+			}
+
+			// Concat the last columns
+			std::stringstream data;
+			for (uint i = 2; i < elems.size(); i++) {
+				if (i != 2) {
+					data << "\t";
+				}
+				data << elems[i];
+			}
+			nodes.push_back(
+					{ elems[1], (u_int32_t) std::stoi(elems[0]), data.str() });
+
 		}
 	}
 	myReadFile.close();
@@ -94,7 +118,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 		const std::string fileName) {
 	CompletionTrieBuilder builder;
 	long start = Utils::getCurrentMicroSeconds();
-	std::vector<std::pair<std::string, int> > nodeValues = readFile(fileName);
+	std::vector<Suggestion> nodeValues = readFile(fileName);
 
 	long time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for reading file" << std::endl;
@@ -104,8 +128,9 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	/*
 	 * Fill the Builder with all terms from the file
 	 */
-	for (auto nodeValue : nodeValues) {
-		builder.addString(nodeValue.first, nodeValue.second, nodeValue.first);
+	for (Suggestion nodeValue : nodeValues) {
+		builder.addString(nodeValue.suggestion, nodeValue.relativeScore,
+				nodeValue.additionalData);
 	}
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
