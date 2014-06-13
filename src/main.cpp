@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
 		CompletionTrie* trie = CompletionTrieBuilder::buildFromFile(
 				Options::GetString(OPTION_LOAD_FILE));
 
-		trie->print();
+//		trie->print();
 
 		//	PerformanceTest::runTest(trie);
 		interactiveThread(trie);

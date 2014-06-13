@@ -33,10 +33,19 @@ public:
 	CompletionTrieBuilder();
 	virtual ~CompletionTrieBuilder();
 
-	void addString(std::string str, u_int32_t score, std::string additionalData);
+	void addString(std::string str, u_int32_t score,
+			std::string additionalData);
 	CompletionTrie* generateCompletionTrie();
 	void print();
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);
+
+	float getAverageWordLength() {
+		return numberOfCharsStored / allNodes.size();
+	}
+
+	size_t getNumberOfTerms() {
+		return allNodes.size();
+	}
 
 	static CompletionTrie* buildFromFile(const std::string fileName);
 private:
@@ -44,6 +53,9 @@ private:
 	std::vector<BuilderNode*> allNodes;
 
 	std::shared_ptr<SuggestionStore> suggestionStore;
+
+	// Sum of all word lengths of all terms stored
+	u_int32_t numberOfCharsStored;
 
 	BuilderNode* createNode(BuilderNode* parent, u_int32_t score,
 			std::string _suffix);
@@ -53,7 +65,7 @@ private:
 	 * $score\t$term\t$additionalDataMayContainTabs\n
 	 *
 	 */
-	static std::vector<Suggestion> readFile(	const std::string fileName);
+	static std::vector<Suggestion> readFile(const std::string fileName);
 
 	/**
 	 * Creates a list of nodes defining the longest maximum substr of term. Nodes returned

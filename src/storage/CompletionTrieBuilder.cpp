@@ -57,7 +57,8 @@ BuilderNode* CompletionTrieBuilder::createNode(BuilderNode* parent,
 }
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
-		suggestionStore(std::make_shared<SuggestionStore>()) {
+		suggestionStore(std::make_shared<SuggestionStore>()), numberOfCharsStored(
+				0) {
 	root = createNode(nullptr, 0xFFFFFFFF, "");
 }
 
@@ -91,7 +92,7 @@ std::vector<Suggestion> CompletionTrieBuilder::readFile(
 				elems.push_back(item);
 			}
 
-			if (elems.size() < 3) {
+			if (elems.size() < 2) {
 				std::cerr << "Badly formated line in file: " << line
 						<< std::endl;
 				exit(1);
@@ -105,8 +106,8 @@ std::vector<Suggestion> CompletionTrieBuilder::readFile(
 				}
 				data << elems[i];
 			}
-			nodes.push_back(
-					{ elems[1], (u_int32_t) std::stoi(elems[0]), data.str() });
+			nodes.push_back( { elems[1], (u_int32_t) std::stoi(elems[0]),
+					elems[0] });
 
 		}
 	}
@@ -136,19 +137,25 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	std::cout << time / 1000. << " ms for creating builder trie" << std::endl;
 
 	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
-			<< std::endl;
+			<< " MB" << std::endl;
 
 	start = Utils::getCurrentMicroSeconds();
 
 	CompletionTrie* trie = builder.generateCompletionTrie();
-
-//	builder.print();
 
 	time = Utils::getCurrentMicroSeconds() - start;
 	std::cout << time / 1000. << " ms for creating packed trie with "
 			<< trie->getMemoryConsumption() << " Bytes" << std::endl;
 
 	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
+			<< " MB" << std::endl;
+
+	std::cout << "Number of words stored: " << builder.getNumberOfTerms()
+			<< std::endl;
+	std::cout << "Average word length: " << builder.getAverageWordLength()
+			<< std::endl;
+	std::cout << "Average Bytes per word: "
+			<< trie->getMemoryConsumption() / builder.getNumberOfTerms()
 			<< std::endl;
 	return trie;
 }
@@ -219,6 +226,8 @@ CompletionTrie* CompletionTrieBuilder::generateCompletionTrie() {
 void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 		std::string additionalData) {
 	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+	numberOfCharsStored += str.length();
 
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
