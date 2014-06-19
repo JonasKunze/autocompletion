@@ -58,7 +58,7 @@ BuilderNode* CompletionTrieBuilder::createNode(BuilderNode* parent,
 
 CompletionTrieBuilder::CompletionTrieBuilder() :
 		suggestionStore(std::make_shared<SuggestionStore>()), numberOfCharsStored(
-				0) {
+				0), numberOfWordsStored(0) {
 	root = createNode(nullptr, 0xFFFFFFFF, "");
 }
 
@@ -150,12 +150,14 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	std::cout << "Total memory consumption: " << Utils::GetMemUsage() / 1000000.
 			<< " MB" << std::endl;
 
-	std::cout << "Number of words stored: " << builder.getNumberOfTerms()
+	std::cout << "AverageWordLength: " << builder.getNumberOfCharsStored()/(float)builder.getNumberOfWordsStored()
 			<< std::endl;
-	std::cout << "Average word length: " << builder.getAverageWordLength()
+	std::cout << "Number of nodes stored: " << builder.getNumberOfNodes()
+			<< std::endl;
+	std::cout << "Average node length: " << builder.getAverageCharsPerNode()
 			<< std::endl;
 	std::cout << "Average Bytes per word: "
-			<< trie->getMemoryConsumption() / (float)builder.getNumberOfTerms()
+			<< trie->getMemoryConsumption() / (float)builder.getNumberOfNodes()
 			<< std::endl;
 	return trie;
 }
@@ -228,11 +230,13 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 
 	numberOfCharsStored += str.length();
+	numberOfWordsStored++;
 
 	unsigned short numberOfCharsFound = 0;
 	unsigned char charsRemainingForLastNode = 0;
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
 			charsRemainingForLastNode);
+	locus.
 
 	BuilderNode* parent = locus.top();
 

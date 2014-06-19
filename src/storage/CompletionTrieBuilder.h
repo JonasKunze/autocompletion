@@ -39,12 +39,20 @@ public:
 	void print();
 	void printNode(BuilderNode* node, std::deque<BuilderNode*> locus);
 
-	float getAverageWordLength() {
+	float getAverageCharsPerNode() {
 		return numberOfCharsStored / (float)allNodes.size();
 	}
 
-	size_t getNumberOfTerms() {
+	size_t getNumberOfNodes() {
 		return allNodes.size();
+	}
+
+	u_int32_t getNumberOfCharsStored() {
+		return numberOfCharsStored;
+	}
+
+	u_int32_t getNumberOfWordsStored() {
+		return numberOfWordsStored;
 	}
 
 	static CompletionTrie* buildFromFile(const std::string fileName);
@@ -56,6 +64,7 @@ private:
 
 	// Sum of all word lengths of all terms stored
 	u_int32_t numberOfCharsStored;
+	u_int32_t numberOfWordsStored;
 
 	BuilderNode* createNode(BuilderNode* parent, u_int32_t score,
 			std::string _suffix);
