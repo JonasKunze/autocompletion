@@ -157,7 +157,7 @@ CompletionTrie* CompletionTrieBuilder::buildFromFile(
 	std::cout << "Average node length: " << builder.getAverageCharsPerNode()
 			<< std::endl;
 	std::cout << "Average Bytes per word: "
-			<< trie->getMemoryConsumption() / (float)builder.getNumberOfNodes()
+			<< trie->getMemoryConsumption() / (float)builder.getNumberOfWordsStored()
 			<< std::endl;
 	return trie;
 }
@@ -236,7 +236,6 @@ void CompletionTrieBuilder::addString(std::string str, u_int32_t score,
 	unsigned char charsRemainingForLastNode = 0;
 	std::stack<BuilderNode*> locus = findLocus(str, numberOfCharsFound,
 			charsRemainingForLastNode);
-	locus.
 
 	BuilderNode* parent = locus.top();
 
